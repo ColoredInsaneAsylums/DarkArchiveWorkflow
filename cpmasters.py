@@ -1,8 +1,38 @@
 # -*- coding: utf-8 -*-
 
-# COPYRIGHT STATEMENT GOES HERE.
+# BSD 3-Clause License
+# 
+# Copyright (c) 2017, ColoredInsaneAsylums
+# All rights reserved.
+# 
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+# 
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+# 
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+# 
+# * Neither the name of the copyright holder nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+# 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 # CREDITS
+# Creator: Nitin Verma
+# 
 
 # IMPORT NEEDED MODULES
 import csv
@@ -18,6 +48,7 @@ from datetime import datetime
 from time import localtime, time, strftime
 import json
 import urllib
+import argparse
 
 
 # DECLARE GLOBALS AND THEIR DEFAULT VALUES
@@ -302,219 +333,180 @@ def transfer_files(src, dst, eadInfo):
     return returnList  # Transfers were successfully completed, return True
 
 
-def main():
-    #PARSE AND VALIDATE COMMAND-LINE OPTIONS
-    try:
-        # gnu_getopt() returns two iterable objects. The first object contains all
-        # the command-line options, and the second object contains any remaining 
-        # arguments that were not associated with any option.
-        options, nonOptionArguments = getopt.gnu_getopt(sys.argv[1:], "e:f:hmq")
-    except getopt.GetoptError as optionError:
-        print_error(optionError)
-        print_usage()
-        exit(ERROR_INVALID_ARGUMENT_STRING)
+#PARSE AND VALIDATE COMMAND-LINE OPTIONS
+argParser = argparse.ArgumentParser(description="Migrate Files for Preservation")
+argParser.add_argument('-e', '--extension', nargs=1, default='*', help='Specify file EXTENSION for files that need to be migrated.')
+argParser.add_argument('filePair', nargs='*', metavar='SRC DST', help='Migrate files from SRC to DST. DST will be created if it does not exist.')
+argParser.add_argument('-f', '--file', nargs=1, default=False, metavar='CSVPATH', help='CSVPATH is the path to the CSV file to be used with the -f option.')
+argParser.add_argument('-q', '--quiet', action='store_true', help='Enable this option to suppress all logging, except critical error messages.')
+argParser.add_argument('-m', '--move', action='store_true', help='Enable this option to move the files instead of copying them.')
 
+args = argParser.parse_args()
 
-    # Error check: if NO option is given, then EXACTLY TWO arguments -- source and
-    # destination -- are REQUIRED.
-    # If the above condition is not met, then display usage info and exit.
-    if len(options) == 0 and len(nonOptionArguments) != 2:
-        print_usage()
-        exit(ERROR_INVALID_ARGUMENT_STRING)
+ext = args.extension[0]
+quietMode = args.quiet
+move = args.move
 
-    # Extract options and their arguments 
-    for opt, arg in options:
-        if opt == '-e':  # Option to specify a particular fileName extension for 
-                        # transfer. Takes one string argument. e.g. tif, or png.
-            ext = arg
-        elif opt == '-f':  # Option to specify a batch file (in CSV format) with
-                        # rows of source-destination pairs.
-                        # Takes one argument: path to the CSV file.
-            batchMode = True
-            csvFile = arg
-        elif opt == '-h':  # Option to print help text. No argument required.
-            print_help()
-            exit()
-        elif opt == '-m':  # If specified, files will be MOVED instead of being
-                        # copied. No argument required.
-            move = True
-        elif opt == '-q':  # Switches off the VERBOSE mode. No argument required.
-            quietMode = True
-
-    print_info("options:", options)
-    print_info("nonOptionArguments:", nonOptionArguments)
-
-    # If batch mode is used (i.e., option -f), then there should NOT be any 
-    # non-option arguments on the command-line.
-    #
-    # If, however, batch mode is NOT used (i.e., the option -f is not specified),
-    # then there should be EXACTLY TWO non-option arguments specified on the 
-    # command-line. The FIRST of those two arguments would be taken to be the 
-    # source path, and the SECOND to be the destination path.
-    if batchMode == True and len(nonOptionArguments) == 0:
-        print_info("CSV file: {}".format(csvFile))
-    elif batchMode == False and len(nonOptionArguments) == 2:
-        # If one source-destination pair was supplied on the command line 
-        # directly.
-        src = nonOptionArguments[0]  # Source path
-        dst = nonOptionArguments[1].rstrip()  # Destination path
-        transferList.append([src, dst])  # Store src and dst in a list, and append
-                                        # that list to transferList.
-        print_info("Source: {}\nDestination: {}".format(src, dst))
+if args.file:
+    batchMode = True
+    csvFile = args.file[0]
+else:
+    batchMode = False
+    if len(args.filePair) != 2:
+        src = args.filePair[0]
+        dst = args.filePair[1]
+        transferList.append([src, dst])
     else:
-        print_usage()
+        argParser.print_help()
         exit(ERROR_INVALID_ARGUMENT_STRING)
-        
-    print_info("Extension: {}".format(ext))
 
-    if move == True:
-        print_info("'move' option selected\nCAUTION: Files will be moved rather \
-    than copied")
+   
+print_info("Extension: {}".format(ext))
 
-    print_info("quiet mode: ", quietMode)
+if move == True:
+    print_info("'move' option selected\nCAUTION: Files will be moved rather \
+than copied")
 
-    # POPULATE LIST OF SOURCE-DESTINATION PAIRS
-    if batchMode == True:  # Batch mode. Read and validate CSV file.
-        # Read CSV file contents into transferList.
+print_info("quiet mode: ", quietMode)
+
+# POPULATE LIST OF SOURCE-DESTINATION PAIRS
+if batchMode == True:  # Batch mode. Read and validate CSV file.
+    # Read CSV file contents into transferList.
+    try:
+        # Open the CSV file in read-only mode.
+        csvFileHandle = open (csvFile, "r")
+    except IOError as ioErrorCsvRead:
+        print_error(ioErrorCsvRead)
+        print_error("Could not open CSV file '{}'".format(csvFile))
+        exit(ERROR_CANNOT_OPEN_CSV_FILE)
+    
+    # CSV file successfully opened.
+    csvReader = csv.reader(csvFileHandle)  # Create an iterable object from the
+                                        # CSV file using csv.reader().
+    
+    # This for loop reads and checks the format (i.e., presence of at least two
+    # columns per row) of the CSV file, and populates 'transferList' which will 
+    # be used for the actual file transfers.
+    # 
+    # FORMAT RULES/ASSUMPTIONS for the CSV file:
+    #   1. The FIRST column specifies SOURCE path
+    #   2. The SECOND column specifies DESTINATION path
+    rowNum = 1
+    for row in csvReader:
+        #print(len(row), " ", row[0:6])
+        #continue
+        try:  # 'Try' to capture the first six columns (i.e. row[0] to row[5])
+            # into transferList.
+            #transferList.append([row[0], row[1]])
+            transferList.append(row[0:6])
+        except IndexError as indexError:  # If there are not AT LEAST 6 columns
+                                        # in the row, append the row as it is
+                                        # (i.e. w/o indexing cols 0 thru 5).
+                                        #
+                                        # Will be handled while processing
+                                        # transfers.
+            transferList.append(row)
+            print_error(indexError)
+            print_error("Row number {} in {} is not a valid input. This row will \
+not be processed.".format(rowNum, csvFile))
+        rowNum += 1
+
+    errorList.append(transferList[0]) # Retain the first row
+                                    # of the transferList to form the header
+                                    # of the errorList.
+    errorList[0].append("Comment")
+    
+    transferList = transferList[1:]  # Delete the first element because it
+                                    # corresponds to the CSV header row.
+    csvFileHandle.close()  # Close the CSV file as it will not be needed
+                        # from this point on.
+
+print_info("Number of directories to transfer: {}".format(len(transferList)))
+
+for row in transferList:
+    print_info(row)
+
+# CREATE DATABASE CONNECTION
+dbParams = init_db() # TODO: there needs to be a check to determine if the 
+                    # database connection was successful or not.
+dbHandle = dbParams[0]
+dbCollection = dbParams[1]
+
+# PROCESS ALL TRANSFERS
+for row in transferList:
+    if len(row) >= 6:  # We need AT LEAST SIX columns. Any extra column(s) will
+                    # be ignored.
+
+        # The next six lines require the CSV file to be in the specific format.
+        src = row[0]
+        dst = row[1]
+        series = row[2]
+        subseries = row[3]
+        itemgroup = row[4]
+        itemsubgroup = row[5]
+
+        print_info("\nAssessing the following directories for next transfer:")
+        print_info("source: {}, destination: {}, series: {}, subseries: {},".format(src, dst, series, subseries))
+        print_info("itemgroup: {}, itemsubgroup: {}".format(itemgroup, itemsubgroup))
+    else:
+        print_info("Transfer for '{}' not possible. Skipping to next \
+transfer.".format(row))
+        # Append the list row (with less than 2 elements) to errorList, and skip
+        # to the next row in transferList
+        errorList.append(row)
+        continue
+
+    # Check if src and dst exist
+    if os.path.isdir(src) != True:  # Source directory doesn't exist.
+                                    # Add row to errorList, and skip to next
+                                    # row
+        print_info("the source directory '{}' does not exist. \
+Skipping to next transfer.".format(src))
+        errorList.append(row)
+        continue
+    elif os.path.isdir(dst) != True:  # Destination directory doesn't exist
         try:
-            # Open the CSV file in read-only mode.
-            csvFileHandle = open (csvFile, "r")
-        except IOError as ioErrorCsvRead:
-            print_error(ioErrorCsvRead)
-            print_error("Could not open CSV file '{}'".format(csvFile))
-            exit(ERROR_CANNOT_OPEN_CSV_FILE)
-        
-        # CSV file successfully opened.
-        csvReader = csv.reader(csvFileHandle)  # Create an iterable object from the
-                                            # CSV file using csv.reader().
-        
-        # This for loop reads and checks the format (i.e., presence of at least two
-        # columns per row) of the CSV file, and populates 'transferList' which will 
-        # be used for the actual file transfers.
-        # 
-        # FORMAT RULES/ASSUMPTIONS for the CSV file:
-        #   1. The FIRST column specifies SOURCE path
-        #   2. The SECOND column specifies DESTINATION path
-        rowNum = 1
-        for row in csvReader:
-            #print(len(row), " ", row[0:6])
-            #continue
-            try:  # 'Try' to capture the first six columns (i.e. row[0] to row[5])
-                # into transferList.
-                #transferList.append([row[0], row[1]])
-                transferList.append(row[0:6])
-            except IndexError as indexError:  # If there are not AT LEAST 6 columns
-                                            # in the row, append the row as it is
-                                            # (i.e. w/o indexing cols 0 thru 5).
-                                            #
-                                            # Will be handled while processing
-                                            # transfers.
-                transferList.append(row)
-                print_error(indexError)
-                print_error("Row number {} in {} is not a valid input. This row will \
-    not be processed.".format(rowNum, csvFile))
-            rowNum += 1
-
-        errorList.append(transferList[0]) # Retain the first row
-                                        # of the transferList to form the header
-                                        # of the errorList.
-        errorList[0].append("Comment")
-        
-        transferList = transferList[1:]  # Delete the first element because it
-                                        # corresponds to the CSV header row.
-        csvFileHandle.close()  # Close the CSV file as it will not be needed
-                            # from this point on.
-
-    print_info("Number of directories to transfer: {}".format(len(transferList)))
-
-    for row in transferList:
-        print_info(row)
-
-    # CREATE DATABASE CONNECTION
-    dbParams = init_db() # TODO: there needs to be a check to determine if the 
-                        # database connection was successful or not.
-    dbHandle = dbParams[0]
-    dbCollection = dbParams[1]
-
-    # PROCESS ALL TRANSFERS
-    for row in transferList:
-        if len(row) >= 6:  # We need AT LEAST SIX columns. Any extra column(s) will
-                        # be ignored.
-
-            # The next six lines require the CSV file to be in the specific format.
-            src = row[0]
-            dst = row[1]
-            series = row[2]
-            subseries = row[3]
-            itemgroup = row[4]
-            itemsubgroup = row[5]
-
-            print_info("\nAssessing the following directories for next transfer:")
-            print_info("source: {}, destination: {}, series: {}, subseries: {},".format(src, dst, series, subseries))
-            print_info("itemgroup: {}, itemsubgroup: {}".format(itemgroup, itemsubgroup))
-        else:
-            print_info("Transfer for '{}' not possible. Skipping to next \
-    transfer.".format(row))
-            # Append the list row (with less than 2 elements) to errorList, and skip
-            # to the next row in transferList
+            os.makedirs(dst)  # This will create all the intermediate
+                            # directories required.
+        except os.error as osError:
+            print_error(osError)
+            print_error("cannot create destination directory {}. \
+                Skipping to next transfer.")
             errorList.append(row)
             continue
-
-        # Check if src and dst exist
-        if os.path.isdir(src) != True:  # Source directory doesn't exist.
-                                        # Add row to errorList, and skip to next
-                                        # row
-            print_info("the source directory '{}' does not exist. \
-    Skipping to next transfer.".format(src))
-            errorList.append(row)
-            continue
-        elif os.path.isdir(dst) != True:  # Destination directory doesn't exist
-            try:
-                os.makedirs(dst)  # This will create all the intermediate
-                                # directories required.
-            except os.error as osError:
-                print_error(osError)
-                print_error("cannot create destination directory {}. \
-                    Skipping to next transfer.")
-                errorList.append(row)
-                continue
-            
-        transferStatus = transfer_files(src, dst, [series, subseries, itemgroup, itemsubgroup])
         
-        if transferStatus[0] != True:
-            # Something bad happened during this particular transfer.
-            # Add this row to the list errorList to keep a record of it.
-            # Also append diagnostic information about why the transfer was not
-            # successful.
-            row.append(transferStatus[1])
-            errorList.append(row)
-            
-
-    # WRITE ALL ROWS THAT COULD NOT BE PROCESSED TO A CSV FILE
-    if len(errorList) > 1:  # Because at least the header row will always be there!
-        errorsCSVFileName = ("transfer_errors_" + strftime("%Y-%m-%d_%H%M%S", 
-                                                        localtime(time()))
-                            + ".csv")
+    transferStatus = transfer_files(src, dst, [series, subseries, itemgroup, itemsubgroup])
+    
+    if transferStatus[0] != True:
+        # Something bad happened during this particular transfer.
+        # Add this row to the list errorList to keep a record of it.
+        # Also append diagnostic information about why the transfer was not
+        # successful.
+        row.append(transferStatus[1])
+        errorList.append(row)
         
-        try:
-            errorsCSVFileHandle = open(errorsCSVFileName, 'w')
-        except IOError as ioErrorCsvWrite:
-            print_error(ioErrorCsvWrite)
-            print_error("Could not write CSV file for errors encountered during \
-    transfers")
-            exit (ERROR_CANNOT_WRITE_CSV_FILE)
-            
-        csvWriter = csv.writer(errorsCSVFileHandle, delimiter=',', quotechar='"',
-                            lineterminator='\n')
+
+# WRITE ALL ROWS THAT COULD NOT BE PROCESSED TO A CSV FILE
+if len(errorList) > 1:  # Because at least the header row will always be there!
+    errorsCSVFileName = ("transfer_errors_" + strftime("%Y-%m-%d_%H%M%S", 
+                                                    localtime(time()))
+                        + ".csv")
+    
+    try:
+        errorsCSVFileHandle = open(errorsCSVFileName, 'w')
+    except IOError as ioErrorCsvWrite:
+        print_error(ioErrorCsvWrite)
+        print_error("Could not write CSV file for errors encountered during \
+transfers")
+        exit (ERROR_CANNOT_WRITE_CSV_FILE)
         
-        for row in errorList:
-            csvWriter.writerow(row)
-            
-        errorsCSVFileHandle.close()
-        print_error("Not all transfers were successful. A record of rows for which \
-    errors were encountered has been written to the following file: \
-    {}".format(errorsCSVFileName))
-
-
-if __name__ == "__main__":
-    main()
+    csvWriter = csv.writer(errorsCSVFileHandle, delimiter=',', quotechar='"',
+                        lineterminator='\n')
+    
+    for row in errorList:
+        csvWriter.writerow(row)
+        
+    errorsCSVFileHandle.close()
+    print_error("Not all transfers were successful. A record of rows for which \
+errors were encountered has been written to the following file: \
+{}".format(errorsCSVFileName))
