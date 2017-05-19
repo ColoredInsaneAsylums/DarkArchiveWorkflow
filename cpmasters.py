@@ -186,7 +186,7 @@ def init_db():
     return [handle, dbCollection]
 
 
-def insertRecordInDB(srcPath, uniqueId, dstPath, checksum, eadInfo, timestamp):
+def insertRecordInDB(srcPath, uniqueId, dstPath, checksum, eadInfo, timestamp, checksumAlgo):
     """insertRecordInDB
 
     Arguments:
@@ -210,6 +210,7 @@ def insertRecordInDB(srcPath, uniqueId, dstPath, checksum, eadInfo, timestamp):
         "source": srcPath,
         "destination": dstPath,
         "checksum": checksum,
+        "checksumAlgo": checksumAlgo,
         "timestamp": timestamp
     }
 
@@ -222,11 +223,6 @@ def insertRecordInDB(srcPath, uniqueId, dstPath, checksum, eadInfo, timestamp):
 
     dbInsertResult = dbHandle[dbCollection].insert_one(record)
     return(str(dbInsertResult.inserted_id))
-
-
-def updateRecordInDB(objectId, uniqueDstFilePath, checksum, timestamp):
-    
-    dbHandle[dbCollection].update_one({"_id": ObjectId(objectId)}, {"$set": {"preservationInfo.destination": uniqueDstFilePath, "preservationInfo.checksum": checksum, "preservationInfo.timestamp": timestamp}})
 
 def transfer_files(src, dst, eadInfo):
     """transfer_files(): Carries out the actual transfer of files.
@@ -292,7 +288,7 @@ def transfer_files(src, dst, eadInfo):
                 # COPY files (with metadata) from src to dst
                 shutil.copy2(fileName, uniqueDstFilePath)
             
-            # Calculate the checksum for the file as copied/moved to the
+            # Calculate the checksum for the file once copied/moved to the
             # destination.
             dstChecksum = getFileChecksum(uniqueDstFilePath)
 
@@ -314,7 +310,7 @@ def transfer_files(src, dst, eadInfo):
             # Finally, if control reaches to this point, it means that the
             # current transfer was successful, and that now we are ready to
             # create an entry in the Mongo database.
-            insertRecordInDB(fileName, uniqueFileName, uniqueDstFilePath, dstChecksum, eadInfo, currentTimeStamp) # uniqueFileName should be renamed because it's purpose is to carry the unique ID rather than the file name
+            insertRecordInDB(fileName, uniqueFileName, uniqueDstFilePath, dstChecksum, eadInfo, currentTimeStamp, "MD5 Hash") # uniqueFileName should be renamed because it's purpose is to carry the unique ID rather than the file name
 
             numFilesTransferred += 1
 
@@ -333,10 +329,11 @@ def transfer_files(src, dst, eadInfo):
     return returnList  # Transfers were successfully completed, return True
 
 
+
 #PARSE AND VALIDATE COMMAND-LINE OPTIONS
 argParser = argparse.ArgumentParser(description="Migrate Files for Preservation")
 argParser.add_argument('-e', '--extension', nargs=1, default='*', help='Specify file EXTENSION for files that need to be migrated.')
-argParser.add_argument('filePair', nargs='*', metavar='SRC DST', help='Migrate files from SRC to DST. DST will be created if it does not exist.')
+argParser.add_argument('srcDstPair', nargs='*', metavar='SRC DST', help='Migrate files from SRC to DST. DST will be created if it does not exist. These arguments will be ignored if the -f option is specified.')
 argParser.add_argument('-f', '--file', nargs=1, default=False, metavar='CSVPATH', help='CSVPATH is the path to the CSV file to be used with the -f option.')
 argParser.add_argument('-q', '--quiet', action='store_true', help='Enable this option to suppress all logging, except critical error messages.')
 argParser.add_argument('-m', '--move', action='store_true', help='Enable this option to move the files instead of copying them.')
@@ -352,14 +349,13 @@ if args.file:
     csvFile = args.file[0]
 else:
     batchMode = False
-    if len(args.filePair) != 2:
-        src = args.filePair[0]
-        dst = args.filePair[1]
+    if len(args.srcDstPair) != 2:
+        src = args.srcDstPair[0]
+        dst = args.srcDstPair[1]
         transferList.append([src, dst])
     else:
         argParser.print_help()
         exit(ERROR_INVALID_ARGUMENT_STRING)
-
    
 print_info("Extension: {}".format(ext))
 
