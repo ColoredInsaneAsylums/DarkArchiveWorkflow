@@ -66,6 +66,11 @@ errorList = []  # List of source-dest pairs for which
                                          # processing. Is a subset of 
                                          # transferList.
 
+minNumCols = 2  # The minimum no. of columns that should be present in each row
+                # of the CSV file. Determined by the header row.
+
+checksumAlgo = "MD5 Hash"
+
 # DATABASE VARIABLES
 DBNAME = "cshdb" # TODO: Move this to a config file, along with other db stuff
 dbHandle = None # Stores the handle to access the database. Initialized to None.
@@ -76,6 +81,7 @@ ERROR_INVALID_ARGUMENT_STRING = -1
 ERROR_CANNOT_OPEN_CSV_FILE = -2
 ERROR_CANNOT_WRITE_CSV_FILE = -3
 ERROR_CANNOT_READ_DBCONF_FILE = -4
+ERROR_INVALID_HEADER_ROW = -5
 
 
 # FUNCTION DEFINITIONS 
@@ -186,7 +192,7 @@ def init_db():
     return [handle, dbCollection]
 
 
-def insertRecordInDB(srcPath, uniqueId, dstPath, checksum, eadInfo, timestamp, checksumAlgo):
+def insertRecordInDB(srcPath, uniqueId, dstPath, checksum, eadInfo, timestamp, csAlgo, eventType):
     """insertRecordInDB
 
     Arguments:
@@ -197,11 +203,6 @@ def insertRecordInDB(srcPath, uniqueId, dstPath, checksum, eadInfo, timestamp, c
     This function creates a database entry pertaining to the file being transferred.
     
     """
-
-    if move == True:
-        eventType = "migration"
-    else:
-        eventType = "replication"
     
     record = {}
     record["_id"] = uniqueId
@@ -214,13 +215,10 @@ def insertRecordInDB(srcPath, uniqueId, dstPath, checksum, eadInfo, timestamp, c
         "timestamp": timestamp
     }
 
-    record["EADInfo"] = {
-        "series": eadInfo[0],
-        "subseries": eadInfo[1],
-        "itemgroup": eadInfo[2],
-        "itemsubgroup": eadInfo[3]
-    }
-
+    record["EADInfo"] = {}
+    for eadTag in eadInfo:
+        record["EADInfo"][eadTag] = eadInfo[eadTag]
+    
     dbInsertResult = dbHandle[dbCollection].insert_one(record)
     return(str(dbInsertResult.inserted_id))
 
@@ -310,7 +308,12 @@ def transfer_files(src, dst, eadInfo):
             # Finally, if control reaches to this point, it means that the
             # current transfer was successful, and that now we are ready to
             # create an entry in the Mongo database.
-            insertRecordInDB(fileName, uniqueFileName, uniqueDstFilePath, dstChecksum, eadInfo, currentTimeStamp, "MD5 Hash") # uniqueFileName should be renamed because it's purpose is to carry the unique ID rather than the file name
+
+            if move == True:
+                eventType = "migration"
+            else:
+                eventType = "replication"
+            insertRecordInDB(fileName, uniqueFileName, uniqueDstFilePath, dstChecksum, eadInfo, currentTimeStamp, checksumAlgo, eventType) # uniqueFileName should be renamed because it's purpose is to carry the unique ID rather than the file name
 
             numFilesTransferred += 1
 
@@ -333,12 +336,16 @@ def transfer_files(src, dst, eadInfo):
 #PARSE AND VALIDATE COMMAND-LINE OPTIONS
 argParser = argparse.ArgumentParser(description="Migrate Files for Preservation")
 argParser.add_argument('-e', '--extension', nargs=1, default='*', help='Specify file EXTENSION for files that need to be migrated.')
-argParser.add_argument('srcDstPair', nargs='*', metavar='SRC DST', help='Migrate files from SRC to DST. DST will be created if it does not exist. These arguments will be ignored if the -f option is specified.')
+#argParser.add_argument('srcDstPair', nargs='*', metavar='SRC DST', help='Migrate files from SRC to DST. DST will be created if it does not exist. These arguments will be ignored if the -f option is specified.')
 argParser.add_argument('-f', '--file', nargs=1, default=False, metavar='CSVPATH', help='CSVPATH is the path to the CSV file to be used with the -f option.')
 argParser.add_argument('-q', '--quiet', action='store_true', help='Enable this option to suppress all logging, except critical error messages.')
 argParser.add_argument('-m', '--move', action='store_true', help='Enable this option to move the files instead of copying them.')
 
 args = argParser.parse_args()
+
+if len(sys.argv) < 2:
+    argParser.print_help()
+    exit(ERROR_INVALID_ARGUMENT_STRING)
 
 ext = args.extension[0]
 quietMode = args.quiet
@@ -380,6 +387,37 @@ if batchMode == True:  # Batch mode. Read and validate CSV file.
     csvReader = csv.reader(csvFileHandle)  # Create an iterable object from the
                                         # CSV file using csv.reader().
     
+    # Check if the first row is a header row.
+    firstRow = next(csvReader, None)
+    firstRowPresent = True
+
+    if firstRow == None:
+        print("The header row is invalid")
+        exit(ERROR_INVALID_HEADER_ROW)
+
+    print("checking the header row. Header: {}".format(firstRow))
+    for col in firstRow:
+        if col in ['Source', 'Destination'] or col.startswith('ead:'):
+            continue
+        else:
+            firstRowPresent = False
+            break
+
+    if firstRowPresent == False:
+        print("The header row is invalid")
+        exit(ERROR_INVALID_HEADER_ROW)
+
+
+    # Extract EAD info from header row
+    numEADCols = 0
+    EADTags = {}
+    for col in firstRow:
+        if col.startswith('ead:'):
+            numEADCols += 1
+            EADTags[numEADCols] = col.split(':')[-1]
+
+    minNumCols = minNumCols + numEADCols
+    errorList.append(firstRow + ["Comments"])
     # This for loop reads and checks the format (i.e., presence of at least two
     # columns per row) of the CSV file, and populates 'transferList' which will 
     # be used for the actual file transfers.
@@ -387,33 +425,30 @@ if batchMode == True:  # Batch mode. Read and validate CSV file.
     # FORMAT RULES/ASSUMPTIONS for the CSV file:
     #   1. The FIRST column specifies SOURCE path
     #   2. The SECOND column specifies DESTINATION path
+    #   3. The remaining columns must be named like "ead:<EAD field/tag>", 
+    #      e.g., "ead:series", "ead:sub-series", etc.
     rowNum = 1
     for row in csvReader:
         #print(len(row), " ", row[0:6])
         #continue
-        try:  # 'Try' to capture the first six columns (i.e. row[0] to row[5])
+        try:  # 'Try' to capture the first minNumCols columns (i.e. row[0] to row[5])
             # into transferList.
             #transferList.append([row[0], row[1]])
-            transferList.append(row[0:6])
+            #transferList.append(row[0:minNumCols])
+            transferList.append(row)
         except IndexError as indexError:  # If there are not AT LEAST 6 columns
                                         # in the row, append the row as it is
                                         # (i.e. w/o indexing cols 0 thru 5).
                                         #
                                         # Will be handled while processing
                                         # transfers.
-            transferList.append(row)
+            #transferList.append(row)
             print_error(indexError)
             print_error("Row number {} in {} is not a valid input. This row will \
 not be processed.".format(rowNum, csvFile))
+            errorList.append(row + ["Not a valid input"])
         rowNum += 1
 
-    errorList.append(transferList[0]) # Retain the first row
-                                    # of the transferList to form the header
-                                    # of the errorList.
-    errorList[0].append("Comment")
-    
-    transferList = transferList[1:]  # Delete the first element because it
-                                    # corresponds to the CSV header row.
     csvFileHandle.close()  # Close the CSV file as it will not be needed
                         # from this point on.
 
@@ -430,20 +465,21 @@ dbCollection = dbParams[1]
 
 # PROCESS ALL TRANSFERS
 for row in transferList:
-    if len(row) >= 6:  # We need AT LEAST SIX columns. Any extra column(s) will
+    if len(row) >= minNumCols:  # We need AT LEAST this many columns. Any extra column(s) will
                     # be ignored.
 
         # The next six lines require the CSV file to be in the specific format.
         src = row[0]
         dst = row[1]
-        series = row[2]
-        subseries = row[3]
-        itemgroup = row[4]
-        itemsubgroup = row[5]
+
+        EADData = {}
+
+        for eadNum in range(1, numEADCols + 1):
+            EADData[EADTags[eadNum]] = row[eadNum + 1]
 
         print_info("\nAssessing the following directories for next transfer:")
-        print_info("source: {}, destination: {}, series: {}, subseries: {},".format(src, dst, series, subseries))
-        print_info("itemgroup: {}, itemsubgroup: {}".format(itemgroup, itemsubgroup))
+        print_info("EAD Data: {}".format(EADData))
+        #print_info("itemgroup: {}, itemsubgroup: {}".format(itemgroup, itemsubgroup))
     else:
         print_info("Transfer for '{}' not possible. Skipping to next \
 transfer.".format(row))
@@ -471,7 +507,7 @@ Skipping to next transfer.".format(src))
             errorList.append(row)
             continue
         
-    transferStatus = transfer_files(src, dst, [series, subseries, itemgroup, itemsubgroup])
+    transferStatus = transfer_files(src, dst, EADData)
     
     if transferStatus[0] != True:
         # Something bad happened during this particular transfer.
