@@ -215,7 +215,7 @@ def insertRecordInDB(srcPath, uniqueId, dstPath, checksum, eadInfo, timestamp, c
         "timestamp": timestamp
     }
 
-    record["EADInfo"] = {}
+    record["archivalInfo"] = {}
     for eadTag in eadInfo:
         record["EADInfo"][eadTag] = eadInfo[eadTag]
     
@@ -233,12 +233,12 @@ def transfer_files(src, dst, eadInfo):
         True:
         False: 
     """
-    returnList = []  # This list will be returned to the caller. The first 
-                     # element of this list would be a binary value (True, or
-                     # False) indicating success or failure, and the second 
+    returnData = {}  # This dict will be returned to the caller. The 'status' 
+                     # element of this dict would be a binary value (True, or
+                     # False) indicating success or failure, and the 'comment' 
                      # element would be a string specifying "Success" in case
-                     # the transfers did not encounter any anomalous/error 
-                     # condition(s), OR a string describing what went wrong.
+                     # the transfers were successful, OR a string describing 
+                     # what went wrong.
 
     try:
         # Create a list of files with the given extension within the src 
@@ -253,22 +253,21 @@ def transfer_files(src, dst, eadInfo):
                                 # be treated as an unsuccessful transfer just
                                 # to caution the user. This cautioning will be
                                 # very helpful in cases of large batch files
-            returnList.append(False)
+            returnData['status'] = False
             print_error("No files found with extension '{}'!".format(ext))
-            returnList.append("No files found with extension '{}'!".format(ext))
-            return returnList
+            returnData['comment'] = "No files found with extension '{}'!".format(ext)
+            return returnData
             
         # Loop over all files with the extension ext
         for fileName in fileList:
-            dstFilePath = os.path.join(dst, os.path.basename(fileName))
             srcFileExt = os.path.basename(fileName).split('.')[-1]
 
-            uniqueFileName = str(ObjectId())  # This generates a unique 12-byte
+            dstFileUniqueName = str(ObjectId())  # This generates a unique 12-byte
                                          # hexadecimal id using the BSON module.
 
             # Create the unique destination file path using the dst (destination
-            # directory), and the uniqueFileName generated using ObjectId()
-            uniqueDstFilePath = os.path.join(dst, uniqueFileName + "." + srcFileExt)
+            # directory), and the dstFileUniqueName generated using ObjectId()
+            dstFileUniquePath = os.path.join(dst, dstFileUniqueName + "." + srcFileExt)
             
             # Calculate the checksum for the source file. This will be used
             # later to verify the contents of the file once it has been copied
@@ -276,19 +275,17 @@ def transfer_files(src, dst, eadInfo):
             srcChecksum = getFileChecksum(fileName)
 
             if move == True: 
-                print_info("MOVING '{}' from '{}' to '{}'".format(os.path.basename(fileName),
-                            src, dst))
+                print_info("MOVING '{}' from '{}' to '{}'".format(os.path.basename(fileName), src, dst))
                 # MOVE files from src to dst
-                shutil.move(fileName, uniqueDstFilePath)
+                shutil.move(fileName, dstFileUniquePath)
             else:
-                print_info("COPYING '{}' from '{}' to '{}'".format(os.path.basename(fileName),
-                        src, dst))
+                print_info("COPYING '{}' from '{}' to '{}'".format(os.path.basename(fileName), src, dst))
                 # COPY files (with metadata) from src to dst
-                shutil.copy2(fileName, uniqueDstFilePath)
+                shutil.copy2(fileName, dstFileUniquePath)
             
             # Calculate the checksum for the file once copied/moved to the
             # destination.
-            dstChecksum = getFileChecksum(uniqueDstFilePath)
+            dstChecksum = getFileChecksum(dstFileUniquePath)
 
             # Compare the checksums of the source and destination files to 
             # verify the success of the transfer. If checksums do not match,
@@ -297,11 +294,10 @@ def transfer_files(src, dst, eadInfo):
             # shutil exceptions below. i.e., we create an error report string
             # and return it to the caller.
             if dstChecksum != srcChecksum:
-                print_error("Checksum mismatch for '{}', and '{}'".format(fileName, uniqueDstFilePath))
-                returnList.append(False)
-                commentString = "Error: Checksum mismatch!"
-                returnList.append(commentString)
-                return returnList  # Something went wrong, return False
+                print_error("Checksum mismatch for '{}', and '{}'".format(fileName, dstFileUniquePath))
+                returnData['status'] = False
+                returnData['comment'] = "Checksum mismatch for '{}', and '{}'. Aborted transfers for remaining files in directory.".format(fileName, dstFileUniquePath)
+                return returnData  # Something went wrong, return False
 
             currentTimeStamp = datetime.now().strftime('%d %b %Y %H:%M:%S') #TODO: get this timestamp from the file's metadata (stat?)
 
@@ -313,7 +309,8 @@ def transfer_files(src, dst, eadInfo):
                 eventType = "migration"
             else:
                 eventType = "replication"
-            insertRecordInDB(fileName, uniqueFileName, uniqueDstFilePath, dstChecksum, eadInfo, currentTimeStamp, checksumAlgo, eventType) # uniqueFileName should be renamed because it's purpose is to carry the unique ID rather than the file name
+            
+            insertRecordInDB(fileName, dstFileUniqueName, dstFileUniquePath, dstChecksum, eadInfo, currentTimeStamp, checksumAlgo, eventType) # dstFileUniqueName should be renamed because it's purpose is to carry the unique ID rather than the file name
 
             numFilesTransferred += 1
 
@@ -321,15 +318,15 @@ def transfer_files(src, dst, eadInfo):
                                           # simplify the code.
         print_error(shutilException)
         print_error("Cannot complete transfer for '{}', and '{}'".format(src, dst))
-        returnList.append(False)
+        returnData.append(False)
         commentString = "Error: " + shutilException
-        returnList.append(commentString)
-        return returnList  # Something went wrong, return False
+        returnData.append(commentString)
+        return returnData  # Something went wrong, return False
         
-    returnList.append(True)
+    returnData['status'] = True
     commentString = "Success. {} out of {} files transferred".format(numFilesTransferred, totalNumFiles)
-    returnList.append(commentString)
-    return returnList  # Transfers were successfully completed, return True
+    returnData['comment'] = commentString
+    return returnData  # Transfers were successfully completed, return True
 
 
 
@@ -387,17 +384,17 @@ if batchMode == True:  # Batch mode. Read and validate CSV file.
     csvReader = csv.reader(csvFileHandle)  # Create an iterable object from the
                                         # CSV file using csv.reader().
     
-    # Check if the first row is a header row.
+    # Extract the first row to check if it is a header.
     firstRow = next(csvReader, None)
     firstRowPresent = True
 
-    if firstRow == None:
+    if firstRow == None:  # This also serves as a check for an empty CSV file
         print("The header row is invalid")
         exit(ERROR_INVALID_HEADER_ROW)
 
-    print("checking the header row. Header: {}".format(firstRow))
+    print("Checking the header row. Header: {}".format(firstRow))
     for col in firstRow:
-        if col in ['Source', 'Destination'] or col.startswith('ead:'):
+        if col.lower() in ['source', 'destination'] or col.startswith('ead:'):
             continue
         else:
             firstRowPresent = False
@@ -416,7 +413,7 @@ if batchMode == True:  # Batch mode. Read and validate CSV file.
             numEADCols += 1
             EADTags[numEADCols] = col.split(':')[-1]
 
-    minNumCols = minNumCols + numEADCols
+    minNumCols += numEADCols
     errorList.append(firstRow + ["Comments"])
     # This for loop reads and checks the format (i.e., presence of at least two
     # columns per row) of the CSV file, and populates 'transferList' which will 
@@ -429,24 +426,12 @@ if batchMode == True:  # Batch mode. Read and validate CSV file.
     #      e.g., "ead:series", "ead:sub-series", etc.
     rowNum = 1
     for row in csvReader:
-        #print(len(row), " ", row[0:6])
-        #continue
-        try:  # 'Try' to capture the first minNumCols columns (i.e. row[0] to row[5])
-            # into transferList.
-            #transferList.append([row[0], row[1]])
-            #transferList.append(row[0:minNumCols])
+        if len(row) < minNumCols:  # Check if the row has AT LEAST minNumCols elements.
+            print_error("Row number {} in {} is not a valid input. This row will not be processed.".format(rowNum, csvFile))
+            emptyStrings = ["" for i in range(0, minNumCols - len(row) - 1)]  # To align the error message to be under "Comments"
+            errorList.append(row + emptyStrings + ["Not a valid input"])
+        else: 
             transferList.append(row)
-        except IndexError as indexError:  # If there are not AT LEAST 6 columns
-                                        # in the row, append the row as it is
-                                        # (i.e. w/o indexing cols 0 thru 5).
-                                        #
-                                        # Will be handled while processing
-                                        # transfers.
-            #transferList.append(row)
-            print_error(indexError)
-            print_error("Row number {} in {} is not a valid input. This row will \
-not be processed.".format(rowNum, csvFile))
-            errorList.append(row + ["Not a valid input"])
         rowNum += 1
 
     csvFileHandle.close()  # Close the CSV file as it will not be needed
@@ -454,69 +439,60 @@ not be processed.".format(rowNum, csvFile))
 
 print_info("Number of directories to transfer: {}".format(len(transferList)))
 
+'''
 for row in transferList:
     print_info(row)
+'''
 
 # CREATE DATABASE CONNECTION
-dbParams = init_db() # TODO: there needs to be a check to determine if the 
-                    # database connection was successful or not.
+dbParams = init_db()  # TODO: there needs to be a check to determine if the 
+                      # database connection was successful or not.
 dbHandle = dbParams[0]
 dbCollection = dbParams[1]
 
 # PROCESS ALL TRANSFERS
 for row in transferList:
-    if len(row) >= minNumCols:  # We need AT LEAST this many columns. Any extra column(s) will
-                    # be ignored.
+    src = row[0]
+    dst = row[1]
 
-        # The next six lines require the CSV file to be in the specific format.
-        src = row[0]
-        dst = row[1]
+    EADData = {}
 
-        EADData = {}
+    for eadId in range(1, numEADCols + 1):
+        EADData[EADTags[eadId]] = row[eadId + 1]
 
-        for eadNum in range(1, numEADCols + 1):
-            EADData[EADTags[eadNum]] = row[eadNum + 1]
+    print_info("EAD Data: {}".format(EADData))
 
-        print_info("\nAssessing the following directories for next transfer:")
-        print_info("EAD Data: {}".format(EADData))
-        #print_info("itemgroup: {}, itemsubgroup: {}".format(itemgroup, itemsubgroup))
-    else:
-        print_info("Transfer for '{}' not possible. Skipping to next \
-transfer.".format(row))
-        # Append the list row (with less than 2 elements) to errorList, and skip
-        # to the next row in transferList
-        errorList.append(row)
-        continue
-
-    # Check if src and dst exist
+    # Check if the source directory exists
     if os.path.isdir(src) != True:  # Source directory doesn't exist.
                                     # Add row to errorList, and skip to next
                                     # row
-        print_info("the source directory '{}' does not exist. \
+        print_info("The source directory '{}' does not exist. \
 Skipping to next transfer.".format(src))
-        errorList.append(row)
+        errorList.append(row + ["Source does not exist"])
         continue
-    elif os.path.isdir(dst) != True:  # Destination directory doesn't exist
+
+    # Check if the destination directory exists.
+    # Create it if it doesn't exist.
+    if os.path.isdir(dst) != True:  # Destination directory doesn't exist
         try:
             os.makedirs(dst)  # This will create all the intermediate
-                            # directories required.
+                              # directories required.
         except os.error as osError:
             print_error(osError)
             print_error("cannot create destination directory {}. \
                 Skipping to next transfer.")
-            errorList.append(row)
+            errorList.append(row + [str(osError)])
             continue
         
     transferStatus = transfer_files(src, dst, EADData)
     
-    if transferStatus[0] != True:
+    if transferStatus['status'] != True:
         # Something bad happened during this particular transfer.
         # Add this row to the list errorList to keep a record of it.
         # Also append diagnostic information about why the transfer was not
         # successful.
-        row.append(transferStatus[1])
-        errorList.append(row)
-        
+        #row.append(transferStatus['comment'])
+        errorList.append(row + [transferStatus['comment']])
 
 # WRITE ALL ROWS THAT COULD NOT BE PROCESSED TO A CSV FILE
 if len(errorList) > 1:  # Because at least the header row will always be there!
