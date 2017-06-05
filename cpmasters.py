@@ -42,6 +42,7 @@ import os
 import glob
 import shutil
 import hashlib
+import pymongo
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 from datetime import datetime
@@ -82,6 +83,11 @@ ERROR_CANNOT_OPEN_CSV_FILE = -2
 ERROR_CANNOT_WRITE_CSV_FILE = -3
 ERROR_CANNOT_READ_DBCONF_FILE = -4
 ERROR_INVALID_HEADER_ROW = -5
+ERROR_CANNOT_CONNECT_TO_DB = -6
+ERROR_CANNOT_AUTHENTICATE_DB_USER = -7
+ERROR_CANNOT_INSERT_INTO_DB = -8
+ERROR_CANNOT_REMOVE_FILE = -9
+ERROR_CANNOT_REMOVE_RECORD_FROM_DB = -10
 
 
 # FUNCTION DEFINITIONS 
@@ -187,8 +193,18 @@ def init_db():
     dbName = dbConfig['dbname']
     dbCollection = dbConfig['dbcollection']
 
-    handle = MongoClient(dbAddr)[dbName]
-    handle.authenticate(dbUser, dbPass)
+    try:
+        handle = MongoClient(dbAddr)[dbName]
+    except pymongo.errors.ConnectionFailure as ExceptionConnFailure:
+        print_error(ExceptionConnFailure)
+        exit(ERROR_CANNOT_CONNECT_TO_DB)
+
+    try:
+        handle.authenticate(dbUser, dbPass)
+    except pymongo.errors.PyMongoError as ExceptionPyMongoError:
+        print_error(ExceptionPyMongoError)
+        exit(ERROR_CANNOT_AUTHENTICATE_DB_USER)
+
     return [handle, dbCollection]
 
 
@@ -217,10 +233,24 @@ def insertRecordInDB(srcPath, uniqueId, dstPath, checksum, eadInfo, timestamp, c
 
     record["archivalInfo"] = {}
     for eadTag in eadInfo:
-        record["EADInfo"][eadTag] = eadInfo[eadTag]
+        record["archivalInfo"][eadTag] = eadInfo[eadTag]
     
-    dbInsertResult = dbHandle[dbCollection].insert_one(record)
+    try:
+        dbInsertResult = dbHandle[dbCollection].insert_one(record)
+    except pymongo.errors.PyMongoError as ExceptionPyMongoError:
+        print_error(ExceptionPyMongoError)
+        return(ERROR_CANNOT_INSERT_INTO_DB)
+    
     return(str(dbInsertResult.inserted_id))
+
+
+def DeleteRecordFromDB(id):
+    retVal = dbHandle[dbCollection].delete_one({'_id': id})
+    
+    if retVal.deleted_count != 1:
+        print_error("Cannot remove record from DB")
+        exit(ERROR_CANNOT_REMOVE_RECORD_FROM_DB)
+
 
 def transfer_files(src, dst, eadInfo):
     """transfer_files(): Carries out the actual transfer of files.
@@ -262,18 +292,35 @@ def transfer_files(src, dst, eadInfo):
         for fileName in fileList:
             srcFileExt = os.path.basename(fileName).split('.')[-1]
 
-            dstFileUniqueName = str(ObjectId())  # This generates a unique 12-byte
+            uniqueId = str(ObjectId())  # This generates a unique 12-byte
                                          # hexadecimal id using the BSON module.
 
             # Create the unique destination file path using the dst (destination
-            # directory), and the dstFileUniqueName generated using ObjectId()
-            dstFileUniquePath = os.path.join(dst, dstFileUniqueName + "." + srcFileExt)
+            # directory), and the uniqueId generated using ObjectId()
+            dstFileUniquePath = os.path.join(dst, uniqueId + "." + srcFileExt)
             
             # Calculate the checksum for the source file. This will be used
             # later to verify the contents of the file once it has been copied
             # or moved to the destination directory
             srcChecksum = getFileChecksum(fileName)
 
+            if move == True:
+                eventType = "migration"
+            else:
+                eventType = "replication"
+            
+
+            currentTimeStamp = datetime.now().strftime('%d %b %Y %H:%M:%S')
+
+            # Insert the record into the DB first, and THEN copy/move the file.
+            dbRetValue = insertRecordInDB(fileName, uniqueId, dstFileUniquePath, srcChecksum, eadInfo, currentTimeStamp, checksumAlgo, eventType)
+            if dbRetValue != uniqueId:
+                print_error("DB Insert operation not successful. Unique ID returned by DB does not match the one provided by the script. Exiting.")
+                returnData['status'] = False
+                returnData['comment'] = "DB Insert operation not successful."
+                return(returnData)
+
+            # If DB insertion is successful, copy/move the file.
             if move == True: 
                 print_info("MOVING '{}' from '{}' to '{}'".format(os.path.basename(fileName), src, dst))
                 # MOVE files from src to dst
@@ -290,28 +337,25 @@ def transfer_files(src, dst, eadInfo):
             # Compare the checksums of the source and destination files to 
             # verify the success of the transfer. If checksums do not match,
             # it means that something went wrong during the transfer. In the 
-            # case of such a mismatch, we resort to the same strategy as for 
-            # shutil exceptions below. i.e., we create an error report string
-            # and return it to the caller.
+            # case of such a mismatch, we remove the destination file, and the corresponding
+            # DB record.
             if dstChecksum != srcChecksum:
                 print_error("Checksum mismatch for '{}', and '{}'".format(fileName, dstFileUniquePath))
+
+                # Remove the destination file
+                try:
+                    os.remove(dstFileUniquePath)
+                except os.error as ExceptionFileRemoval:
+                    print_error(ExceptionFileRemoval)
+                    exit(ERROR_CANNOT_REMOVE_FILE)
+
+                # Remove entry from DB
+                DeleteRecordFromDB(uniqueId)
+
                 returnData['status'] = False
                 returnData['comment'] = "Checksum mismatch for '{}', and '{}'. Aborted transfers for remaining files in directory.".format(fileName, dstFileUniquePath)
                 return returnData  # Something went wrong, return False
-
-            currentTimeStamp = datetime.now().strftime('%d %b %Y %H:%M:%S') #TODO: get this timestamp from the file's metadata (stat?)
-
-            # Finally, if control reaches to this point, it means that the
-            # current transfer was successful, and that now we are ready to
-            # create an entry in the Mongo database.
-
-            if move == True:
-                eventType = "migration"
-            else:
-                eventType = "replication"
             
-            insertRecordInDB(fileName, dstFileUniqueName, dstFileUniquePath, dstChecksum, eadInfo, currentTimeStamp, checksumAlgo, eventType) # dstFileUniqueName should be renamed because it's purpose is to carry the unique ID rather than the file name
-
             numFilesTransferred += 1
 
     except Exception as shutilException:  # Catching top-level exception to
