@@ -320,18 +320,17 @@ def transfer_files(src, dst, eadInfo):
                 returnData['comment'] = "DB Insert operation not successful."
                 return(returnData)
 
-            # If DB insertion is successful, copy/move the file.
-            if move == True: 
-                print_info("MOVING '{}' from '{}' to '{}'".format(os.path.basename(fileName), src, dst))
-                # MOVE files from src to dst
-                shutil.move(fileName, dstFileUniquePath)
-            else:
-                print_info("COPYING '{}' from '{}' to '{}'".format(os.path.basename(fileName), src, dst))
-                # COPY files (with metadata) from src to dst
-                shutil.copy2(fileName, dstFileUniquePath)
+            # To be conservative about the transfers, this script implements the move operation as:
+            # 1. COPY the file from source to destination.
+            # 2. Compare the checksum of the copied file to that of the original.
+            # 3. DELETE the copied file in case the checksums do not match.
+            # 4. DELETE the original file in case the checksums match.
+            print_info("{} '{}' from '{}' to '{}'".format("Moving" if move == True else "Copying", os.path.basename(fileName), src, dst))
             
-            # Calculate the checksum for the file once copied/moved to the
-            # destination.
+            # Make a copy of the source file at the destination path
+            shutil.copy2(fileName, dstFileUniquePath)
+            
+            # Calculate the checksum for the file once copied to the destination.
             dstChecksum = getFileChecksum(dstFileUniquePath)
 
             # Compare the checksums of the source and destination files to 
@@ -355,7 +354,15 @@ def transfer_files(src, dst, eadInfo):
                 returnData['status'] = False
                 returnData['comment'] = "Checksum mismatch for '{}', and '{}'. Aborted transfers for remaining files in directory.".format(fileName, dstFileUniquePath)
                 return returnData  # Something went wrong, return False
-            
+            else:
+                if move == True:
+                    try:
+                        os.remove(dstFileUniquePath)
+                    except os.error as ExceptionFileRemoval:
+                        print_error("Cannot remove file from source after the move. Only a copy was made to the destination.")
+                        print_error(ExceptionFileRemoval)
+                        exit(ERROR_CANNOT_REMOVE_FILE)
+
             numFilesTransferred += 1
 
     except Exception as shutilException:  # Catching top-level exception to
