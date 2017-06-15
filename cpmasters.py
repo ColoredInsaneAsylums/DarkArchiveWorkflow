@@ -102,41 +102,6 @@ def print_usage():
     print("       {} [OPTION]... -f CSV".format(sys.argv[0]))
 
 
-def print_help():
-    """print_help(): Prints detailed help information about using the script.
-    
-    Arguments: none.
-    """
-    print_usage()
-    print()
-    print("{} is a file transfer script that can be used to transfer \
-entire contents of a source directory to a destination directory.\
-".format(sys.argv[0]))
-    print("By default (with no command line options specified) all files from \
-SOURCE are COPIED to DEST.")
-    print("In the batch mode (option -f) the script can handle a batch of \
-transfers by specifying source-destination pairs in a CSV file.")
-    print("If a particular source-destination pair cannot be processed for \
-some reason, that pair will be written to a CSV file located at the path \
-from which the script was called.")
-    print()
-    print("OPTIONS:")
-    print("  -e: The option to specify a particular file-extension to be \
-transferred. e.g., tif, jpg, pdf, etc. The file-extension should be passed as \
-an argument to this option.")
-    print("  -f: To specify batch mode. This option takes a file path as \
-argument. The file should be a CSV file, with a minimum of TWO columns -- \
-first column specifying a SOURCE directory, and the second column specifying \
-a DESTINATION directory. All extra columns will be ignored.")
-    print("  -h: Prints this help information.")
-    print("  -m: When specified, this option will MOVE files from a source \
-directory to the destination directory instead of copying them. Use with \
-caution!")
-    print("  -q: Quiet mode. Specifying this option quiets all the \
-informational prints. Only error messages and critical information will be \
-printed")
-
-
 def print_info(*args):
     """print_info(): Prints informational messages on stdout
 
@@ -153,6 +118,7 @@ def print_info(*args):
             print(arg, end='')
         print()
 
+
 def print_error(*args):
     """print_error():
 
@@ -167,6 +133,7 @@ def print_error(*args):
 
 def getFileChecksum(filePath):
     return hashlib.md5(open(filePath, 'rb').read()).hexdigest() # TODO: include this inline in the caller. remove function.
+
 
 def init_db():
     """init_db():
@@ -365,8 +332,7 @@ def transfer_files(src, dst, eadInfo):
 
             numFilesTransferred += 1
 
-    except Exception as shutilException:  # Catching top-level exception to
-                                          # simplify the code.
+    except Exception as shutilException:  # Catching top-level exception to simplify the code.
         print_error(shutilException)
         print_error("Cannot complete transfer for '{}', and '{}'".format(src, dst))
         returnData.append(False)
