@@ -1,0 +1,10 @@
+{
+    "preservation_info_label": "preservationInfo",
+    "type_of_event_label": "eventType",
+    "source_directory": "source",
+    "destination_directory": "destination",
+    "file_transfer_timestamp": "timestamp",
+    "checksum_value": "checksum",
+    "checksum_algorithm": "checksumAlgo",
+    "checksum_timestamp": "timestamp"
+}

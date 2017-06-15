@@ -77,6 +77,9 @@ DBNAME = "cshdb" # TODO: Move this to a config file, along with other db stuff
 dbHandle = None # Stores the handle to access the database. Initialized to None.
 dbCollection = None
 
+# LABEL DICTIONARIES
+labelDict = dict()
+
 # ERROR CODES
 ERROR_INVALID_ARGUMENT_STRING = -1
 ERROR_CANNOT_OPEN_CSV_FILE = -2
@@ -88,6 +91,9 @@ ERROR_CANNOT_AUTHENTICATE_DB_USER = -7
 ERROR_CANNOT_INSERT_INTO_DB = -8
 ERROR_CANNOT_REMOVE_FILE = -9
 ERROR_CANNOT_REMOVE_RECORD_FROM_DB = -10
+ERROR_CANNOT_READ_LABELS_FILE = -11
+ERROR_KEY_NOT_FOUND = -12
+ERROR_INVALID_JSON_FILE = -13
 
 
 # FUNCTION DEFINITIONS 
@@ -165,6 +171,34 @@ def init_db():
     return [handle, dbCollection]
 
 
+def read_label_dictionary():
+    """read_label_dictionary()
+
+    Arguments:
+        None
+
+    This function reads the file 'labels.json' to populate the label dictionary.
+    This label dictionary will be used to assign labels to metadata items to be 
+    recorded into a database for each transfer.
+    """
+
+    try:
+        labelsJson = open("labels.json", "r").read()
+    except IOError as jsonReadException:
+        print_error(jsonReadException)
+        print_error("\nCould not read the labels file 'labels.json'")
+        quit(ERROR_CANNOT_READ_LABELS_FILE)
+
+    try:
+        labels = json.loads(labelsJson)
+    except json.JSONDecodeError as jsonDecodeError:
+        print_error(jsonDecodeError)
+        print_error("The file 'labels.json' is not a valid JSON file. Please check the file for formatting errors.")
+        exit(ERROR_INVALID_JSON_FILE)
+
+    return labels
+
+
 def insertRecordInDB(srcPath, uniqueId, dstPath, checksum, eadInfo, timestamp, csAlgo, eventType):
     """insertRecordInDB
 
@@ -179,19 +213,20 @@ def insertRecordInDB(srcPath, uniqueId, dstPath, checksum, eadInfo, timestamp, c
     
     record = {}
     record["_id"] = uniqueId
-    record["preservationInfo"] = {
-        "eventType": eventType,
-        "source": srcPath,
-        "destination": dstPath,
-        "checksum": checksum,
-        "checksumAlgo": checksumAlgo,
-        "timestamp": timestamp
+    record[labelDict["preservation_info_label"]] = {
+        labelDict["type_of_event_label"]: eventType,
+        labelDict["source_directory"]: srcPath,
+        labelDict["destination_directory"]: dstPath,
+        labelDict["checksum_value"]: checksum,
+        labelDict["checksum_algorithm"]: checksumAlgo,
+        labelDict["file_transfer_timestamp"]: timestamp
     }
 
     record["archivalInfo"] = {}
     for eadTag in eadInfo:
         record["archivalInfo"][eadTag] = eadInfo[eadTag]
     
+    print_info("Inserting the following record into the DB: {}".format(record))
     try:
         dbInsertResult = dbHandle[dbCollection].insert_one(record)
     except pymongo.errors.PyMongoError as ExceptionPyMongoError:
@@ -450,6 +485,12 @@ print_info("Number of directories to transfer: {}".format(len(transferList)))
 for row in transferList:
     print_info(row)
 '''
+
+# READ-IN THE LABEL DICTIONARY
+labelDict = read_label_dictionary()
+print_info("The following labels will be used for labeling metadata items in the database records:")
+for key in labelDict:
+    print_info(key, ":", labelDict[key])
 
 # CREATE DATABASE CONNECTION
 dbParams = init_db()  # TODO: there needs to be a check to determine if the 
