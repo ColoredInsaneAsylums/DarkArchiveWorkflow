@@ -92,16 +92,6 @@ ERROR_CANNOT_REMOVE_RECORD_FROM_DB = -10
 
 # FUNCTION DEFINITIONS 
 
-def print_usage():
-    """print_usage(): Prints usage instruction(s).
-    
-    Arguments: none.
-    """
-    
-    print("usage: {} [OPTION]... SOURCE DEST".format(sys.argv[0]))
-    print("       {} [OPTION]... -f CSV".format(sys.argv[0]))
-
-
 def print_info(*args):
     """print_info(): Prints informational messages on stdout
 
