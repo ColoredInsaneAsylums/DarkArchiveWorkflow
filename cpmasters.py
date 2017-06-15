@@ -262,6 +262,12 @@ def transfer_files(src, dst, eadInfo):
                      # the transfers were successful, OR a string describing 
                      # what went wrong.
 
+    src = os.path.abspath(src)
+    dst = os.path.abspath(dst)  # Convert the source and destination paths to absolute paths.
+                                # While this is not important as far as the file
+                                # movement is concerned (i.e., via the shutil functions),
+                                # but this is important from the metadata point-of-view.
+
     try:
         # Create a list of files with the given extension within the src 
         # directory.
