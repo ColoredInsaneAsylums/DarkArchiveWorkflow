@@ -1,0 +1,7 @@
+{
+    "dbname": "<db name>",
+    "dbuser": "<db user name>",
+    "dbpassword": "<db user password>",
+    "dbaddress": "<db IP/network address>",
+    "dbcollection": "db collection name"
+}
