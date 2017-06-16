@@ -168,7 +168,11 @@ def init_db():
         print_error(ExceptionPyMongoError)
         exit(ERROR_CANNOT_AUTHENTICATE_DB_USER)
 
-    return [handle, dbCollection]
+    dbParamsDict = dict()
+    dbParamsDict["handle"] = handle
+    dbParamsDict["collection_name"] = dbCollection
+
+    return dbParamsDict
 
 
 def read_label_dictionary():
@@ -212,7 +216,10 @@ def insertRecordInDB(srcPath, uniqueId, dstPath, checksum, eadInfo, timestamp, c
     """
     
     record = {}
-    record["_id"] = uniqueId
+    record["_id"] = uniqueId  # This label cannot be customized as 
+                              # it is needed by MongoDB for indexing purposes. If we 
+                              # change this to something else, then MongoDB will add 
+                              # a field named "_id" on its own with a unique ID.
     record[labelDict["preservation_info_label"]] = {
         labelDict["type_of_event_label"]: eventType,
         labelDict["source_directory"]: srcPath,
@@ -222,11 +229,13 @@ def insertRecordInDB(srcPath, uniqueId, dstPath, checksum, eadInfo, timestamp, c
         labelDict["file_transfer_timestamp"]: timestamp
     }
 
-    record["archivalInfo"] = {}
+    record[labelDict["archival_info_label"]] = {}
+
     for eadTag in eadInfo:
-        record["archivalInfo"][eadTag] = eadInfo[eadTag]
+        record[labelDict["archival_info_label"]][eadTag] = eadInfo[eadTag]
     
     print_info("Inserting the following record into the DB: {}".format(record))
+
     try:
         dbInsertResult = dbHandle[dbCollection].insert_one(record)
     except pymongo.errors.PyMongoError as ExceptionPyMongoError:
@@ -501,8 +510,8 @@ for key in labelDict:
 # CREATE DATABASE CONNECTION
 dbParams = init_db()  # TODO: there needs to be a check to determine if the 
                       # database connection was successful or not.
-dbHandle = dbParams[0]
-dbCollection = dbParams[1]
+dbHandle = dbParams["handle"]
+dbCollection = dbParams["collection_name"]
 
 # PROCESS ALL TRANSFERS
 for row in transferList:

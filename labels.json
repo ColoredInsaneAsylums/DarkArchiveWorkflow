@@ -6,5 +6,6 @@
     "file_transfer_timestamp": "timestamp",
     "checksum_value": "checksum",
     "checksum_algorithm": "checksumAlgo",
-    "checksum_timestamp": "timestamp"
+    "checksum_timestamp": "timestamp",
+    "archival_info_label": "archivalInfo"
 }
