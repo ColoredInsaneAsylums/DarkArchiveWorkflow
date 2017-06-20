@@ -44,7 +44,8 @@ import shutil
 import hashlib
 import pymongo
 from pymongo import MongoClient
-from bson.objectid import ObjectId
+#from bson.objectid import ObjectId
+from uuid import uuid4
 from datetime import datetime
 from time import localtime, time, strftime
 import json
@@ -253,6 +254,10 @@ def DeleteRecordFromDB(id):
         exit(ERROR_CANNOT_REMOVE_RECORD_FROM_DB)
 
 
+def getUniqueID():
+    return str(uuid4())
+
+
 def transfer_files(src, dst, eadInfo):
     """transfer_files(): Carries out the actual transfer of files.
     
@@ -299,8 +304,9 @@ def transfer_files(src, dst, eadInfo):
         for fileName in fileList:
             srcFileExt = os.path.basename(fileName).split('.')[-1]
 
-            uniqueId = str(ObjectId())  # This generates a unique 12-byte
-                                         # hexadecimal id using the BSON module.
+            uniqueId = getUniqueID()  # This generates a unique identifier to
+                                      # be used both as a file name, and for
+                                      # the _id field for MongoDB records.
 
             # Create the unique destination file path using the dst (destination
             # directory), and the uniqueId generated using ObjectId()
