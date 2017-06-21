@@ -110,7 +110,7 @@ def print_info(*args):
     built-in print() function.
     """
     if quietMode == False:
-        print(strftime("%Y-%m-%d_%H:%M:%S", localtime(time())) + ": ", end='')
+        print(getCurrentEDTFTimestamp + ": ", end='')
         for arg in args:
             print(arg, end='')
         print()
@@ -130,6 +130,13 @@ def print_error(*args):
 
 def getFileChecksum(filePath):
     return hashlib.md5(open(filePath, 'rb').read()).hexdigest() # TODO: include this inline in the caller. remove function.
+
+
+def getCurrentEDTFTimestamp():
+    ts = datetime.now().isoformat(sep='T').split('.')[0]
+    tz = strftime('%z', localtime())
+    tz = tz[:3] + ":" + tz[3:]
+    return ts + tz
 
 
 def init_db():
@@ -323,7 +330,7 @@ def transfer_files(src, dst, eadInfo):
                 eventType = "replication"
             
 
-            currentTimeStamp = datetime.now().strftime('%d %b %Y %H:%M:%S')
+            currentTimeStamp = getCurrentEDTFTimestamp()
 
             # Insert the record into the DB first, and THEN copy/move the file.
             dbRetValue = insertRecordInDB(fileName, uniqueId, dstFileUniquePath, srcChecksum, eadInfo, currentTimeStamp, checksumAlgo, eventType)
