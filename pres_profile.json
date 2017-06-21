@@ -1,0 +1,24 @@
+{
+    "event": {
+        "eventIdentifier": {
+            "eventIdentifierType": "",
+            "eventIdentifierValue": ""
+        },
+        "eventType": "",
+        "eventDateTime": "",
+        "eventDetailInformation": {
+            "eventDetail": ""
+        },
+        "eventOutcomeInformation": {
+            "eventOutcome": "",
+            "eventOutcomeDetail": {
+                "eventOutcomeDetailNote": ""
+            }
+        },
+        "linkingAgentIdentifier": {
+            "linkingAgentIdentifierType": "",
+            "linkingAgentIdentifierValue": "",
+            "linkingAgentIdentifierRole": ""
+        }
+    }
+}
