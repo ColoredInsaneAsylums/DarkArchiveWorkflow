@@ -265,8 +265,8 @@ def getUniqueID():
     return str(uuid4())
 
 
-def transfer_files(src, dst, eadInfo):
-    """transfer_files(): Carries out the actual transfer of files.
+def transferFiles(src, dst, eadInfo):
+    """transferFiles(): Carries out the actual transfer of files.
     
     Arguments: 
         [1] Source - path to source directory; 
@@ -560,7 +560,7 @@ Skipping to next transfer.".format(src))
             errorList.append(row + [str(osError)])
             continue
         
-    transferStatus = transfer_files(src, dst, EADData)
+    transferStatus = transferFiles(src, dst, EADData)
     
     if transferStatus['status'] != True:
         # Something bad happened during this particular transfer.
