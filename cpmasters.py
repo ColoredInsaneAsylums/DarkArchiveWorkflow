@@ -348,7 +348,7 @@ def transferFiles(src, dst, eadInfo):
             print_info("{} '{}' from '{}' to '{}'".format("Moving" if move == True else "Copying", os.path.basename(fileName), src, dst))
             
             # Make a copy of the source file at the destination path
-            shutil.copy2(fileName, dstFileUniquePath)
+            shutil.copy(fileName, dstFileUniquePath)
             
             # Calculate the checksum for the file once copied to the destination.
             dstChecksum = getFileChecksum(dstFileUniquePath)
