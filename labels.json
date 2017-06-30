@@ -1,11 +1,15 @@
 {
     "preservation_info_label": "preservationInfo",
     "type_of_event_label": "eventType",
-    "source_directory": "source",
-    "destination_directory": "destination",
+    "source_directory": "sourceDirName",
+    "source_filename": "sourceFileName",
+    "destination_directory": "destinationDirName",
+    "destination_filename": "destinationFileName",
     "file_transfer_timestamp": "timestamp",
     "checksum_value": "checksum",
     "checksum_algorithm": "checksumAlgo",
     "checksum_timestamp": "timestamp",
-    "archival_info_label": "archivalInfo"
+    "archival_info_label": "archivalInfo",
+    "administrative_metadata": "admin",
+    "serial_number": "serialNo"
 }

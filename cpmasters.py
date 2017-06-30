@@ -95,6 +95,7 @@ ERROR_CANNOT_REMOVE_RECORD_FROM_DB = -10
 ERROR_CANNOT_READ_LABELS_FILE = -11
 ERROR_KEY_NOT_FOUND = -12
 ERROR_INVALID_JSON_FILE = -13
+ERROR_CANNOT_CREATE_DESTINATION_DIRECTORY = -14
 
 
 # FUNCTION DEFINITIONS 
@@ -110,7 +111,7 @@ def print_info(*args):
     built-in print() function.
     """
     if quietMode == False:
-        print(getCurrentEDTFTimestamp + ": ", end='')
+        print(getCurrentEDTFTimestamp() + ": ", end='')
         for arg in args:
             print(arg, end='')
         print()
@@ -211,7 +212,7 @@ def read_label_dictionary():
     return labels
 
 
-def insertRecordInDB(srcPath, uniqueId, dstPath, checksum, eadInfo, timestamp, csAlgo, eventType):
+def insertRecordInDB(serialNo, srcFileName, srcDirName, uniqueId, dstFileName, dstDirName, checksum, eadInfo, timestamp, csAlgo, eventType):
     """insertRecordInDB
 
     Arguments:
@@ -229,9 +230,12 @@ def insertRecordInDB(srcPath, uniqueId, dstPath, checksum, eadInfo, timestamp, c
                               # change this to something else, then MongoDB will add 
                               # a field named "_id" on its own with a unique ID.
     record[labelDict["preservation_info_label"]] = {
+        labelDict["serial_number"]: serialNo,
         labelDict["type_of_event_label"]: eventType,
-        labelDict["source_directory"]: srcPath,
-        labelDict["destination_directory"]: dstPath,
+        labelDict["source_directory"]: srcDirName,
+        labelDict["source_filename"]: srcFileName,
+        labelDict["destination_directory"]: dstDirName,
+        labelDict["destination_filename"]: dstFileName,
         labelDict["checksum_value"]: checksum,
         labelDict["checksum_algorithm"]: checksumAlgo,
         labelDict["file_transfer_timestamp"]: timestamp
@@ -242,7 +246,7 @@ def insertRecordInDB(srcPath, uniqueId, dstPath, checksum, eadInfo, timestamp, c
     for eadTag in eadInfo:
         record[labelDict["archival_info_label"]][eadTag] = eadInfo[eadTag]
     
-    print_info("Inserting the following record into the DB: {}".format(record))
+    print_info("Inserting the following record into the DB: {}\n".format(record))
 
     try:
         dbInsertResult = dbHandle[dbCollection].insert_one(record)
@@ -263,6 +267,19 @@ def DeleteRecordFromDB(id):
 
 def getUniqueID():
     return str(uuid4())
+
+
+def getHighestSerialNo(dst):
+    queryField = labelDict['preservation_info_label'] + "." + labelDict['destination_directory']
+    serialNoLabel = labelDict['preservation_info_label'] + "." + labelDict['serial_number']
+    records = dbHandle[dbCollection].find({queryField: dst}, {"_id": 0, serialNoLabel: 1})
+    records = [record for record in records]
+
+    if len(records) == 0:
+        return 1
+    else:
+        serialNos = [int(record[labelDict['preservation_info_label']][labelDict['serial_number']]) for record in records]
+        return max(serialNos) + 1
 
 
 def transferFiles(src, dst, eadInfo):
@@ -289,10 +306,31 @@ def transferFiles(src, dst, eadInfo):
                                 # movement is concerned (i.e., via the shutil functions),
                                 # but this is important from the metadata point-of-view.
 
+    srcDirectory = src
+    dstDirectory = dst
+
+    # Check if the destination directory exists.
+    # Create it if it doesn't exist.
+    if os.path.isdir(dstDirectory) != True:  # Destination directory doesn't exist
+        try:
+            os.makedirs(dst)  # This will create all the intermediate
+                              # directories required.
+        except os.error as osError:
+            print_error(osError)
+            print_error("cannot create destination directory {}. \
+                Skipping to next transfer.")
+            errorList.append(row + [str(osError)])
+            exit(ERROR_CANNOT_CREATE_DESTINATION_DIRECTORY)
+
+        fileSerialNo = 1  # Initialize the serial number to 1, since this
+                          # destination directory has just been created.
+    else:
+        fileSerialNo = getHighestSerialNo(dstDirectory)
+
     try:
         # Create a list of files with the given extension within the src 
         # directory.
-        fileList = sorted(glob.glob(os.path.join(src, "*."+ext)))
+        fileList = sorted(glob.glob(os.path.join(src, "*." + ext)))
         totalNumFiles = len(fileList)
         numFilesTransferred = 0  # Keeps track of number of files successfully
                                  # transferred.
@@ -308,8 +346,9 @@ def transferFiles(src, dst, eadInfo):
             return returnData
             
         # Loop over all files with the extension ext
-        for fileName in fileList:
-            srcFileExt = os.path.basename(fileName).split('.')[-1]
+        for fileName in fileList[fileSerialNo - 1 :]:
+            srcFileName = os.path.basename(fileName)
+            srcFileExt = srcFileName.split('.')[-1]
 
             uniqueId = getUniqueID()  # This generates a unique identifier to
                                       # be used both as a file name, and for
@@ -318,6 +357,7 @@ def transferFiles(src, dst, eadInfo):
             # Create the unique destination file path using the dst (destination
             # directory), and the uniqueId generated using ObjectId()
             dstFileUniquePath = os.path.join(dst, uniqueId + "." + srcFileExt)
+            dstFileName = os.path.basename(dstFileUniquePath)
             
             # Calculate the checksum for the source file. This will be used
             # later to verify the contents of the file once it has been copied
@@ -333,12 +373,22 @@ def transferFiles(src, dst, eadInfo):
             currentTimeStamp = getCurrentEDTFTimestamp()
 
             # Insert the record into the DB first, and THEN copy/move the file.
-            dbRetValue = insertRecordInDB(fileName, uniqueId, dstFileUniquePath, srcChecksum, eadInfo, currentTimeStamp, checksumAlgo, eventType)
+            dbRetValue = insertRecordInDB(fileSerialNo, srcFileName, srcDirectory,
+                                          uniqueId, dstFileName,
+                                          dstDirectory, srcChecksum,
+                                          eadInfo, currentTimeStamp,
+                                          checksumAlgo, eventType)
+
             if dbRetValue != uniqueId:
                 print_error("DB Insert operation not successful. Unique ID returned by DB does not match the one provided by the script. Exiting.")
                 returnData['status'] = False
                 returnData['comment'] = "DB Insert operation not successful."
                 return(returnData)
+
+
+            # Increment the file serial number for the next transfer
+            # and the corresponding DB record
+            fileSerialNo += 1
 
             # To be conservative about the transfers, this script implements the move operation as:
             # 1. COPY the file from source to destination.
@@ -547,19 +597,6 @@ Skipping to next transfer.".format(src))
         errorList.append(row + ["Source does not exist"])
         continue
 
-    # Check if the destination directory exists.
-    # Create it if it doesn't exist.
-    if os.path.isdir(dst) != True:  # Destination directory doesn't exist
-        try:
-            os.makedirs(dst)  # This will create all the intermediate
-                              # directories required.
-        except os.error as osError:
-            print_error(osError)
-            print_error("cannot create destination directory {}. \
-                Skipping to next transfer.")
-            errorList.append(row + [str(osError)])
-            continue
-        
     transferStatus = transferFiles(src, dst, EADData)
     
     if transferStatus['status'] != True:
