@@ -10,6 +10,43 @@
     "checksum_algorithm": "checksumAlgo",
     "checksum_timestamp": "timestamp",
     "archival_info_label": "archivalInfo",
-    "administrative_metadata": "admin",
-    "serial_number": "serialNo"
+    
+    
+    "admn_entity": "admin",
+    "serial_nbr": "serialNo",
+
+    "pres_entity": "premis",
+
+    "obj_entity": "object",
+    "obj_id": "objectIdentifier",
+    "obj_id_typ": "objectIdentifierType",
+    "obj_id_val": "objectIdentifierValue",
+    "obj_cat": "objectCategory",
+    "obj_props": "objectCharacteristics",
+    "obj_fixity": "fixity",
+    "obj_msgdgst_algo": "messageDigestAlgorithm",
+    "obj_msgdgst": "messageDigest",
+    "obj_size": "size",
+    "obj_fmt": "format",
+    "obj_fmt_dsgn": "formatDesignation",
+    "obj_fmt_name": "formatName",
+    "obj_fmt_ver": "formatVersion",
+    "obj_orig_name": "originalName",
+
+    "evt_entity": "event",
+    "evt_id": "eventIdentifier",
+    "evt_id_typ": "eventIdentifierType",
+    "evt_id_val": "eventIdentifierValue",
+    "evt_typ": "eventType",
+    "evt_dttime": "eventDateTime",
+    "evt_detail_info": "eventDetailInformation",
+    "evt_detail": "eventDetail",
+    "evt_outcm_info": "eventOutcomeInformation",
+    "evt_outcm": "eventOutcome",
+    "evt_outcm_detail": "eventOutcomeDetail",
+    "evt_outcm_detail_note": "eventOutcomeDetailNote",
+    "evt_lnk_agnt_id": "linkingAgentIdentifier",
+    "evt_lnk_agnt_id_typ": "linkingAgentIdentifierType",
+    "evt_lnk_agnt_id_val": "linkingAgentIdentifierValue",
+    "evt_lnk_agnt_id_role": "linkingAgentIdentifierRole"
 }

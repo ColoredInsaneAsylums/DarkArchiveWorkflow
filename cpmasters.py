@@ -51,6 +51,7 @@ from time import localtime, time, strftime
 import json
 import urllib
 import argparse
+from collections import namedtuple
 
 
 # DECLARE GLOBALS AND THEIR DEFAULT VALUES
@@ -79,7 +80,7 @@ dbHandle = None # Stores the handle to access the database. Initialized to None.
 dbCollection = None
 
 # LABEL DICTIONARIES
-labelDict = dict()
+labels = dict()
 
 # ERROR CODES
 ERROR_INVALID_ARGUMENT_STRING = -1
@@ -96,6 +97,11 @@ ERROR_CANNOT_READ_LABELS_FILE = -11
 ERROR_KEY_NOT_FOUND = -12
 ERROR_INVALID_JSON_FILE = -13
 ERROR_CANNOT_CREATE_DESTINATION_DIRECTORY = -14
+
+# METADATA-RELATED CONSTANTS
+OBJ_ID_TYPE = "UUID"
+EVT_ID_TYP = "UUID"
+LNK_AGNT_ID_TYPE = "UUID"
 
 
 # FUNCTION DEFINITIONS 
@@ -196,14 +202,14 @@ def read_label_dictionary():
     """
 
     try:
-        labelsJson = open("labels.json", "r").read()
+        jsonObject = open("labels.json", "r").read()
     except IOError as jsonReadException:
         print_error(jsonReadException)
         print_error("\nCould not read the labels file 'labels.json'")
         quit(ERROR_CANNOT_READ_LABELS_FILE)
 
     try:
-        labels = json.loads(labelsJson)
+        labels = json.loads(jsonObject, object_hook= lambda d: namedtuple('Labels', d.keys())(*d.values()))
     except json.JSONDecodeError as jsonDecodeError:
         print_error(jsonDecodeError)
         print_error("The file 'labels.json' is not a valid JSON file. Please check the file for formatting errors.")
@@ -212,44 +218,79 @@ def read_label_dictionary():
     return labels
 
 
-def insertRecordInDB(serialNo, srcFileName, srcDirName, uniqueId, dstFileName, dstDirName, checksum, eadInfo, timestamp, csAlgo, eventType):
+def createMetadataRecord(serialNo, srcFileName, srcDirName, uniqueId, dstFileName,
+                         dstDirName, checksum, eadInfo, timestamp, csAlgo, eventType,
+                         fileSize, formatName, formatVersion):
+    metadataRecord = {}
+    metadataRecord["_id"] = uniqueId
+
+    metadataRecord[labels.admn_entity] = {
+        labels.serial_nbr: serialNo
+    }
+
+    metadataRecord[labels.pres_entity] = {
+        labels.obj_entity: {
+            labels.obj_id: {
+                labels.obj_id_typ: OBJ_ID_TYPE,
+                labels.obj_id_val: uniqueId
+            },
+            labels.obj_cat: "<---TBD--->",
+            labels.obj_props: {
+                labels.obj_fixity: {
+                    labels.obj_msgdgst_algo: csAlgo,
+                    labels.obj_msgdgst: checksum
+                },
+                labels.obj_size: fileSize,
+                labels.obj_fmt: {
+                    labels.obj_fmt_dsgn: {
+                        labels.obj_fmt_name: formatName,
+                        labels.obj_fmt_ver: formatVersion
+                    }
+                }
+            },
+            labels.obj_orig_name: srcFileName
+        },
+
+        labels.evt_entity: {
+            labels.evt_id: {
+                labels.evt_id_typ: EVT_ID_TYP,
+                labels.evt_id_val: "<---->"
+            },
+            labels.evt_typ: eventType,
+            labels.evt_dttime: timestamp,
+            labels.evt_detail_info: {
+                labels.evt_detail: "<---->"
+            },
+            labels.evt_outcm_info: {
+                labels.evt_outcm: "<---->",
+                labels.evt_outcm_detail: {
+                    labels.evt_outcm_detail_note: "<---->"
+                }
+            },
+            labels.evt_lnk_agnt_id: {
+                labels.evt_lnk_agnt_id_typ: LNK_AGNT_ID_TYPE,
+                labels.evt_lnk_agnt_id_val: "<---->",
+                labels.evt_lnk_agnt_id_role: "<---->"
+            }
+        }
+    }
+
+    print("\nthe following metadata record will be created: {}".format(metadataRecord))
+    return metadataRecord
+
+
+def insertRecordInDB(metadataRecord):
     """insertRecordInDB
 
     Arguments:
-        srcPath: path to the source file
-        dstPath: path to the destination file
-        eadInfo: series/subseries/itemgroup/itemsubgroup info
+        metadataRecord
 
     This function creates a database entry pertaining to the file being transferred.
     
     """
     
-    record = {}
-    record["_id"] = uniqueId  # This label cannot be customized as 
-                              # it is needed by MongoDB for indexing purposes. If we 
-                              # change this to something else, then MongoDB will add 
-                              # a field named "_id" on its own with a unique ID.
-    record[labelDict["preservation_info_label"]] = {
-        labelDict["serial_number"]: serialNo,
-        labelDict["type_of_event_label"]: eventType,
-        labelDict["source_directory"]: srcDirName,
-        labelDict["source_filename"]: srcFileName,
-        labelDict["destination_directory"]: dstDirName,
-        labelDict["destination_filename"]: dstFileName,
-        labelDict["checksum_value"]: checksum,
-        labelDict["checksum_algorithm"]: checksumAlgo,
-        labelDict["file_transfer_timestamp"]: timestamp
-    }
-
-    record[labelDict["archival_info_label"]] = {}
-
-    for eadTag in eadInfo:
-        record[labelDict["archival_info_label"]][eadTag] = eadInfo[eadTag]
-    
-    print_info("Inserting the following record into the DB: {}\n".format(record))
-
     try:
-        dbInsertResult = dbHandle[dbCollection].insert_one(record)
+        dbInsertResult = dbHandle[dbCollection].insert_one(metadataRecord)
     except pymongo.errors.PyMongoError as ExceptionPyMongoError:
         print_error(ExceptionPyMongoError)
         return(ERROR_CANNOT_INSERT_INTO_DB)
@@ -270,16 +311,26 @@ def getUniqueID():
 
 
 def getHighestSerialNo(dst):
-    queryField = labelDict['preservation_info_label'] + "." + labelDict['destination_directory']
-    serialNoLabel = labelDict['preservation_info_label'] + "." + labelDict['serial_number']
+    queryField = labels.preservation_info_label + "." + labels.destination_directory
+    serialNoLabel = labels.preservation_info_label + "." + labels.serial_nbr
     records = dbHandle[dbCollection].find({queryField: dst}, {"_id": 0, serialNoLabel: 1})
     records = [record for record in records]
 
     if len(records) == 0:
         return 1
     else:
-        serialNos = [int(record[labelDict['preservation_info_label']][labelDict['serial_number']]) for record in records]
+        serialNos = [int(record[labels.preservation_info_label][labels.serial_nbr]) for record in records]
         return max(serialNos) + 1
+
+
+def getFileFormatName(fileName):
+    extension = fileName.split('.')[-1]
+    return extension.upper()
+
+
+def getFileFormatVersion(fileName):
+    extension = fileName.split('.')[-1]
+    return "1.0"  # TODO: This is just a STAND-IN for testing. NEEDS to be changed.
 
 
 def transferFiles(src, dst, eadInfo):
@@ -300,11 +351,12 @@ def transferFiles(src, dst, eadInfo):
                      # the transfers were successful, OR a string describing 
                      # what went wrong.
 
+    # Convert the source and destination paths to absolute paths.
+    # While this is not important as far as the file
+    # movement is concerned (i.e., via the shutil functions),
+    # but this is important from the metadata point-of-view.
     src = os.path.abspath(src)
-    dst = os.path.abspath(dst)  # Convert the source and destination paths to absolute paths.
-                                # While this is not important as far as the file
-                                # movement is concerned (i.e., via the shutil functions),
-                                # but this is important from the metadata point-of-view.
+    dst = os.path.abspath(dst)
 
     srcDirectory = src
     dstDirectory = dst
@@ -363,32 +415,7 @@ def transferFiles(src, dst, eadInfo):
             # later to verify the contents of the file once it has been copied
             # or moved to the destination directory
             srcChecksum = getFileChecksum(fileName)
-
-            if move == True:
-                eventType = "migration"
-            else:
-                eventType = "replication"
-            
-
-            currentTimeStamp = getCurrentEDTFTimestamp()
-
-            # Insert the record into the DB first, and THEN copy/move the file.
-            dbRetValue = insertRecordInDB(fileSerialNo, srcFileName, srcDirectory,
-                                          uniqueId, dstFileName,
-                                          dstDirectory, srcChecksum,
-                                          eadInfo, currentTimeStamp,
-                                          checksumAlgo, eventType)
-
-            if dbRetValue != uniqueId:
-                print_error("DB Insert operation not successful. Unique ID returned by DB does not match the one provided by the script. Exiting.")
-                returnData['status'] = False
-                returnData['comment'] = "DB Insert operation not successful."
-                return(returnData)
-
-
-            # Increment the file serial number for the next transfer
-            # and the corresponding DB record
-            fileSerialNo += 1
+            srcChecksumTimestamp = getCurrentEDTFTimestamp()
 
             # To be conservative about the transfers, this script implements the move operation as:
             # 1. COPY the file from source to destination.
@@ -397,12 +424,15 @@ def transferFiles(src, dst, eadInfo):
             # 4. DELETE the original file in case the checksums match.
             print_info("{} '{}' from '{}' to '{}'".format("Moving" if move == True else "Copying", os.path.basename(fileName), src, dst))
             
+            srcFileSize = os.path.getsize(fileName)
+            fileFormatName = getFileFormatName(srcFileName)
+            fileFormatVersion = getFileFormatVersion(srcFileName)
+
             # Make a copy of the source file at the destination path
             shutil.copy(fileName, dstFileUniquePath)
             
             # Calculate the checksum for the file once copied to the destination.
             dstChecksum = getFileChecksum(dstFileUniquePath)
-
             # Compare the checksums of the source and destination files to 
             # verify the success of the transfer. If checksums do not match,
             # it means that something went wrong during the transfer. In the 
@@ -426,12 +456,41 @@ def transferFiles(src, dst, eadInfo):
                 return returnData  # Something went wrong, return False
             else:
                 if move == True:
+                    eventType = "migration"
+                else:
+                    eventType = "replication"
+
+                currentTimeStamp = getCurrentEDTFTimestamp()
+
+                metadataRecord = createMetadataRecord(fileSerialNo, srcFileName, srcDirectory,
+                                            uniqueId, dstFileName,
+                                            dstDirectory, srcChecksum,
+                                            eadInfo, currentTimeStamp,
+                                            checksumAlgo, eventType,
+                                            srcFileSize, fileFormatName,
+                                            fileFormatVersion)
+
+                # Insert the record into the DB first, and THEN copy/move the file.
+                dbRetValue = insertRecordInDB(metadataRecord)
+
+                if dbRetValue != uniqueId:
+                    print_error("DB Insert operation not successful. Unique ID returned by DB does not match the one provided by the script. Exiting.")
+                    returnData['status'] = False
+                    returnData['comment'] = "DB Insert operation not successful."
+                    return(returnData)
+
+                if move == True:
                     try:
                         os.remove(dstFileUniquePath)
                     except os.error as ExceptionFileRemoval:
-                        print_error("Cannot remove file from source after the move. Only a copy was made to the destination.")
+                        print_error("Cannot remove file '{}' from source '{}' after the move. Only a copy was made to the destination.".format(srcFileName, srcDirectory))
                         print_error(ExceptionFileRemoval)
                         exit(ERROR_CANNOT_REMOVE_FILE)
+
+                # Increment the file serial number for the next transfer
+                # and the corresponding DB record
+                fileSerialNo += 1
+
 
             numFilesTransferred += 1
 
@@ -565,10 +624,11 @@ for row in transferList:
 '''
 
 # READ-IN THE LABEL DICTIONARY
-labelDict = read_label_dictionary()
+labels = read_label_dictionary()
 print_info("The following labels will be used for labeling metadata items in the database records:")
-for key in labelDict:
-    print_info(key, ":", labelDict[key])
+#for key in labels:
+    #print_info(key, ":", labels[key])
+print_info(labels)
 
 # CREATE DATABASE CONNECTION
 dbParams = init_db()  # TODO: there needs to be a check to determine if the 
