@@ -72,7 +72,7 @@ errorList = []  # List of source-dest pairs for which
 minNumCols = 2  # The minimum no. of columns that should be present in each row
                 # of the CSV file. Determined by the header row.
 
-checksumAlgo = "MD5 Hash"
+checksumAlgo = "python " + sys.version.split(' ')[0] + "; hashlib.md5"
 
 # DATABASE VARIABLES
 DBNAME = "cshdb" # TODO: Move this to a config file, along with other db stuff
@@ -102,7 +102,6 @@ ERROR_CANNOT_CREATE_DESTINATION_DIRECTORY = -14
 OBJ_ID_TYPE = "UUID"
 EVT_ID_TYP = "UUID"
 LNK_AGNT_ID_TYPE = "UUID"
-
 
 # FUNCTION DEFINITIONS 
 
