@@ -462,7 +462,7 @@ def transferFiles(src, dst, eadInfo):
 
                 currentTimeStamp = getCurrentEDTFTimestamp()
 
-                metadataRecord = createMetadataRecord(fileSerialNo, srcFileName, srcDirectory,
+                metadataRecord = createMetadataRecord(fileSerialNo, fileName, srcDirectory,
                                             uniqueId, dstFileName,
                                             dstDirectory, srcChecksum,
                                             eadInfo, currentTimeStamp,
