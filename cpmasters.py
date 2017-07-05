@@ -223,56 +223,48 @@ def createMetadataRecord(serialNo, srcFileName, srcDirName, uniqueId, dstFileNam
     metadataRecord = {}
     metadataRecord["_id"] = uniqueId
 
-    metadataRecord[labels.admn_entity] = {
-        labels.serial_nbr: serialNo
-    }
+    # Create the ADMIN entity here:
+    metadataRecord[labels.admn_entity.name] = {}
+    metadataRecord[labels.admn_entity.name][labels.serial_nbr.name] = serialNo
 
-    metadataRecord[labels.pres_entity] = {
-        labels.obj_entity: {
-            labels.obj_id: {
-                labels.obj_id_typ: OBJ_ID_TYPE,
-                labels.obj_id_val: uniqueId
-            },
-            labels.obj_cat: "<---TBD--->",
-            labels.obj_props: {
-                labels.obj_fixity: {
-                    labels.obj_msgdgst_algo: csAlgo,
-                    labels.obj_msgdgst: checksum
-                },
-                labels.obj_size: fileSize,
-                labels.obj_fmt: {
-                    labels.obj_fmt_dsgn: {
-                        labels.obj_fmt_name: formatName,
-                        labels.obj_fmt_ver: formatVersion
-                    }
-                }
-            },
-            labels.obj_orig_name: srcFileName
-        },
-
-        labels.evt_entity: {
-            labels.evt_id: {
-                labels.evt_id_typ: EVT_ID_TYP,
-                labels.evt_id_val: "<---->"
-            },
-            labels.evt_typ: eventType,
-            labels.evt_dttime: timestamp,
-            labels.evt_detail_info: {
-                labels.evt_detail: "<---->"
-            },
-            labels.evt_outcm_info: {
-                labels.evt_outcm: "<---->",
-                labels.evt_outcm_detail: {
-                    labels.evt_outcm_detail_note: "<---->"
-                }
-            },
-            labels.evt_lnk_agnt_id: {
-                labels.evt_lnk_agnt_id_typ: LNK_AGNT_ID_TYPE,
-                labels.evt_lnk_agnt_id_val: "<---->",
-                labels.evt_lnk_agnt_id_role: "<---->"
-            }
-        }
-    }
+    # Create the PREMIS (or preservation) entity here:
+    metadataRecord[labels.pres_entity.name] = {}
+    metadataRecord[labels.pres_entity.name][labels.obj_entity.name] = {}
+    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_id.name] = {}
+    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_id.name][labels.obj_id_typ.name] = OBJ_ID_TYPE
+    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_id.name][labels.obj_id_val.name] = uniqueId
+    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_cat.name] = "<--M/NR-->"
+    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name] = {}
+    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fixity.name] = {}
+    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fixity.name][labels.obj_msgdgst_algo.name] = csAlgo
+    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fixity.name][labels.obj_msgdgst.name] = checksum
+    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_size.name] = fileSize
+    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fmt.name] = {}
+    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fmt.name][labels.obj_fmt_dsgn.name] = {}
+    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fmt.name][labels.obj_fmt_dsgn.name][labels.obj_fmt_name.name] = formatName
+    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fmt.name][labels.obj_fmt_dsgn.name][labels.obj_fmt_ver.name] = formatVersion
+    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_orig_name.name] = srcFileName
+    
+    metadataRecord[labels.pres_entity.name][labels.evt_parent_entity.name] = []
+    eventRecord = {}
+    eventRecord[labels.evt_entity.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_id.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_typ.name] = EVT_ID_TYP
+    eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_val.name] = "<--M/NR-->"
+    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = eventType
+    eventRecord[labels.evt_entity.name][labels.evt_dttime.name] = timestamp
+    eventRecord[labels.evt_entity.name][labels.evt_detail_info.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_detail_info.name][labels.evt_detail.name] = "<--O/NR-->"
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm.name] = "<--M/NR-->"
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name][labels.evt_outcm_detail_note.name] = "<--M/NR-->"
+    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_typ.name] = LNK_AGNT_ID_TYPE
+    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_val.name] = "<--M/NR-->"
+    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_role.name] = "<--O/NR-->"
+    
+    metadataRecord[labels.pres_entity.name][labels.evt_parent_entity.name].append(eventRecord)
 
     print("\nthe following metadata record will be created: {}".format(metadataRecord))
     return metadataRecord
@@ -311,7 +303,7 @@ def getUniqueID():
 
 def getHighestSerialNo(dst):
     queryField = labels.preservation_info_label + "." + labels.destination_directory
-    serialNoLabel = labels.preservation_info_label + "." + labels.serial_nbr
+    serialNoLabel = labels.preservation_info_label + "." + labels.serial_nbr.name
     records = dbHandle[dbCollection].find({queryField: dst}, {"_id": 0, serialNoLabel: 1})
     records = [record for record in records]
 
@@ -329,7 +321,7 @@ def getFileFormatName(fileName):
 
 def getFileFormatVersion(fileName):
     extension = fileName.split('.')[-1]
-    return "1.0"  # TODO: This is just a STAND-IN for testing. NEEDS to be changed.
+    return ""  # TODO: This is just a STAND-IN for testing. NEEDS to be changed.
 
 
 def transferFiles(src, dst, eadInfo):
