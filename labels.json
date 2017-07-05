@@ -41,6 +41,7 @@
     "evt_id_val": {"name":"eventIdentifierValue", "oblg":"M", "rpt":"NR"},
     "evt_typ": {"name":"eventType", "oblg":"M", "rpt":"NR"},
     "evt_dttime": {"name":"eventDateTime", "oblg":"M", "rpt":"NR"},
+    "evt_detail_parent": {"name":"eventDetails", "oblg":"O", "rpt":"NR"},
     "evt_detail_info": {"name":"eventDetailInformation", "oblg":"O", "rpt":"R"},
     "evt_detail": {"name":"eventDetail", "oblg":"O", "rpt":"NR"},
     "evt_outcm_info": {"name":"eventOutcomeInformation", "oblg":"O", "rpt":"NR"},

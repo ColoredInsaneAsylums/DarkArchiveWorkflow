@@ -217,9 +217,30 @@ def read_label_dictionary():
     return labels
 
 
+def getEventDetails():
+    return ""  # TODO: temporary, needs more work!!
+
+
+def getEventOutcome():
+    return ""  # TODO: temporary, needs more work!!
+
+
+def getEventOutcomeDetail():
+    return ""  # TODO: temporary, needs more work!!
+
+
+def getLinkingAgentId():
+    return ""  # TODO: temporary, needs more work!!
+
+
+def getLinkingAgentRole():
+    return ""  # TODO: temporary, needs more work!!
+
+
 def createMetadataRecord(serialNo, srcFileName, srcDirName, uniqueId, dstFileName,
                          dstDirName, checksum, eadInfo, timestamp, csAlgo, eventType,
-                         fileSize, formatName, formatVersion):
+                         fileSize, formatName, formatVersion, eventDetailString,
+                         eventOutcomeString, eventOutcomeDetailString, linkingAgentId, linkingAgentRole):
     metadataRecord = {}
     metadataRecord["_id"] = uniqueId
 
@@ -242,7 +263,9 @@ def createMetadataRecord(serialNo, srcFileName, srcDirName, uniqueId, dstFileNam
     metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fmt.name] = {}
     metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fmt.name][labels.obj_fmt_dsgn.name] = {}
     metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fmt.name][labels.obj_fmt_dsgn.name][labels.obj_fmt_name.name] = formatName
-    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fmt.name][labels.obj_fmt_dsgn.name][labels.obj_fmt_ver.name] = formatVersion
+    if formatVersion != "":
+        metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fmt.name][labels.obj_fmt_dsgn.name][labels.obj_fmt_ver.name] = formatVersion
+
     metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_orig_name.name] = srcFileName
     
     metadataRecord[labels.pres_entity.name][labels.evt_parent_entity.name] = []
@@ -253,16 +276,27 @@ def createMetadataRecord(serialNo, srcFileName, srcDirName, uniqueId, dstFileNam
     eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_val.name] = "<--M/NR-->"
     eventRecord[labels.evt_entity.name][labels.evt_typ.name] = eventType
     eventRecord[labels.evt_entity.name][labels.evt_dttime.name] = timestamp
-    eventRecord[labels.evt_entity.name][labels.evt_detail_info.name] = {}
-    eventRecord[labels.evt_entity.name][labels.evt_detail_info.name][labels.evt_detail.name] = "<--O/NR-->"
-    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name] = {}
-    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm.name] = "<--M/NR-->"
-    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name] = {}
-    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name][labels.evt_outcm_detail_note.name] = "<--M/NR-->"
-    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name] = {}
-    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_typ.name] = LNK_AGNT_ID_TYPE
-    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_val.name] = "<--M/NR-->"
-    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_role.name] = "<--O/NR-->"
+
+    if eventDetailString != "":
+        eventRecord[labels.evt_entity.name][labels.evt_detail_parent.name] = []
+        eventDetailRecord = {}
+        eventDetailRecord[labels.evt_detail_info.name] = {}
+        eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail.name] = eventDetailString
+        eventRecord[labels.evt_entity.name][labels.evt_detail_parent.name].append(eventDetailRecord)
+
+    if eventOutcomeString != "":
+        eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name] = {}
+        eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm.name] = eventOutcomeString
+        if eventOutcomeDetailString != "":
+            eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name] = {}
+            eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name][labels.evt_outcm_detail_note.name] = eventOutcomeDetailString
+
+    if linkingAgentId != "":
+        eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name] = {}
+        eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_typ.name] = LNK_AGNT_ID_TYPE
+        eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_val.name] = linkingAgentId
+        if linkingAgentRole != "":
+            eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_role.name] = linkingAgentRole
     
     metadataRecord[labels.pres_entity.name][labels.evt_parent_entity.name].append(eventRecord)
 
@@ -451,6 +485,12 @@ def transferFiles(src, dst, eadInfo):
                 else:
                     eventType = "replication"
 
+                eventDetailString = getEventDetails()
+                eventOutcomeString = getEventOutcome()
+                eventOutcomeDetailString = getEventOutcomeDetail()
+                linkingAgentId = getLinkingAgentId()
+                linkingAgentRole = getLinkingAgentRole()
+
                 currentTimeStamp = getCurrentEDTFTimestamp()
 
                 metadataRecord = createMetadataRecord(fileSerialNo, fileName, srcDirectory,
@@ -459,7 +499,9 @@ def transferFiles(src, dst, eadInfo):
                                             eadInfo, currentTimeStamp,
                                             checksumAlgo, eventType,
                                             srcFileSize, fileFormatName,
-                                            fileFormatVersion)
+                                            fileFormatVersion, eventDetailString,
+                                            eventOutcomeString, eventOutcomeDetailString,
+                                            linkingAgentId, linkingAgentRole)
 
                 # Insert the record into the DB first, and THEN copy/move the file.
                 dbRetValue = insertRecordInDB(metadataRecord)
