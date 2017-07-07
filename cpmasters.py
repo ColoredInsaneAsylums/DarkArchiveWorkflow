@@ -72,7 +72,6 @@ errorList = []  # List of source-dest pairs for which
 minNumCols = 2  # The minimum no. of columns that should be present in each row
                 # of the CSV file. Determined by the header row.
 
-checksumAlgo = "python " + sys.version.split(' ')[0] + "; hashlib.md5"
 
 # DATABASE VARIABLES
 DBNAME = "cshdb" # TODO: Move this to a config file, along with other db stuff
@@ -101,7 +100,23 @@ ERROR_CANNOT_CREATE_DESTINATION_DIRECTORY = -14
 # METADATA-RELATED CONSTANTS
 OBJ_ID_TYPE = "UUID"
 EVT_ID_TYP = "UUID"
-LNK_AGNT_ID_TYPE = "UUID"
+LNK_AGNT_ID_TYPE = "program"
+PYTHON_VER_STR = "Python " + sys.version.split(' ')[0]
+LNK_AGNT_ID_VAL = PYTHON_VER_STR + "; " + sys.argv[0]
+MD_INIT_STRING = ""
+CHECKSUM_ALGO = "MD5; python " + sys.version.split(' ')[0] + "; hashlib.md5"
+EVT_OUTCM_SUCCESS = "00"
+EVT_OUTCM_FAILURE = "FF"
+
+EVT_DTL_REPLICATION = PYTHON_VER_STR + "; shutil.copy"
+EVT_DTL_FILENAME_CHNG = PYTHON_VER_STR + "; os.rename"
+
+EVT_TYP_REPLICATION = "replication"
+EVT_TYP_MSGDGST_CALC = "messageDigestCalculation"
+EVT_TYP_ID_ASSGN = "identifierAssignment"
+EVT_TYP_FILENAME_CHNG = "filenameChange"
+EVT_TYP_FIXITY_CHECK = "fixityCheck"
+EVT_TYP_ACCESSION = "accession"
 
 # FUNCTION DEFINITIONS 
 
@@ -237,48 +252,47 @@ def getLinkingAgentRole():
     return ""  # TODO: temporary, needs more work!!
 
 
-def createMetadataRecord(md):
-
-    md = namedtuple('MD', md.keys())(*md.values())
-    metadataRecord = {}
-    metadataRecord["_id"] = md.uid
+def initMetadataRecord(initParams):
+    mdr = {}
+    uniqueId = getUniqueID()
+    mdr["_id"] = uniqueId
 
     # Create the ADMIN entity here:
-    metadataRecord[labels.admn_entity.name] = {}
-    metadataRecord[labels.admn_entity.name][labels.serial_nbr.name] = md.snbr
+    mdr[labels.admn_entity.name] = {}
+    mdr[labels.admn_entity.name][labels.serial_nbr.name] = MD_INIT_STRING
 
     # Create the PREMIS (or preservation) entity here:
-    metadataRecord[labels.pres_entity.name] = {}
-    metadataRecord[labels.pres_entity.name][labels.obj_entity.name] = {}
-    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_id.name] = {}
-    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_id.name][labels.obj_id_typ.name] = OBJ_ID_TYPE
-    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_id.name][labels.obj_id_val.name] = md.uid
-    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_cat.name] = "<--M/NR-->"
-    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name] = {}
-    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fixity.name] = {}
-    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fixity.name][labels.obj_msgdgst_algo.name] = md.chksumalgo
-    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fixity.name][labels.obj_msgdgst.name] = md.chksum
-    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_size.name] = md.srcfilesz
-    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fmt.name] = {}
-    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fmt.name][labels.obj_fmt_dsgn.name] = {}
-    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fmt.name][labels.obj_fmt_dsgn.name][labels.obj_fmt_name.name] = md.fmtname
-    if md.fmtver != "":
-        metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fmt.name][labels.obj_fmt_dsgn.name][labels.obj_fmt_ver.name] = md.fmtver
+    mdr[labels.pres_entity.name] = {}
+    mdr[labels.pres_entity.name][labels.obj_entity.name] = {}
+    mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_id.name] = {}
+    mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_id.name][labels.obj_id_typ.name] = OBJ_ID_TYPE
+    mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_id.name][labels.obj_id_val.name] = uniqueId
+    mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_cat.name] = "<M/NR>"
+    mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name] = {}
+    mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fixity.name] = {}
+    mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fixity.name][labels.obj_msgdgst_algo.name] = MD_INIT_STRING
+    mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fixity.name][labels.obj_msgdgst.name] = MD_INIT_STRING
+    mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_size.name] = initParams["fileSize"]
+    mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fmt.name] = {}
+    mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fmt.name][labels.obj_fmt_dsgn.name] = {}
+    mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fmt.name][labels.obj_fmt_dsgn.name][labels.obj_fmt_name.name] = initParams["fmtName"]
+    #mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fmt.name][labels.obj_fmt_dsgn.name][labels.obj_fmt_ver.name] = initParams["fmtVer"]
 
-    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_orig_name.name] = md.srcfile
+    mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_orig_name.name] = initParams["fileName"]
     
     # Create a parent entity (list) of all PREMIS 'event' entities.
-    metadataRecord[labels.pres_entity.name][labels.evt_parent_entity.name] = []
+    mdr[labels.pres_entity.name][labels.evt_parent_entity.name] = []
 
-    # Create an event record corresponding to a single event
+    # Add an event record corresponding to this event
     eventRecord = {}
     eventRecord[labels.evt_entity.name] = {}
     eventRecord[labels.evt_entity.name][labels.evt_id.name] = {}
     eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_typ.name] = EVT_ID_TYP
-    eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_val.name] = "<--M/NR-->"
-    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = md.evttyp
-    eventRecord[labels.evt_entity.name][labels.evt_dttime.name] = md.timestamp
+    eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_val.name] = getUniqueID()
+    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = EVT_TYP_ID_ASSGN
+    eventRecord[labels.evt_entity.name][labels.evt_dttime.name] = getCurrentEDTFTimestamp()
 
+    """
     if md.evtdtl != "":
         # Create a parent entity (list) for all PREMIS 'eventDetailInformation' entities
         eventRecord[labels.evt_entity.name][labels.evt_detail_parent.name] = []
@@ -286,39 +300,206 @@ def createMetadataRecord(md):
         eventDetailRecord[labels.evt_detail_info.name] = {}
         eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail.name] = md.evtdtl
         eventRecord[labels.evt_entity.name][labels.evt_detail_parent.name].append(eventDetailRecord)
+    """
 
-    if md.evtout != "":
-        eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name] = {}
-        eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm.name] = md.evtout
-        if md.evtoutdtl != "":
-            eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name] = {}
-            eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name][labels.evt_outcm_detail_note.name] = md.evtoutdtl
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm.name] = EVT_OUTCM_SUCCESS
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name][labels.evt_outcm_detail_note.name] = "Unique ID '{}' successfully assigned to this object".format(uniqueId)
 
-    if md.agntid != "":
-        eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name] = {}
-        eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_typ.name] = LNK_AGNT_ID_TYPE
-        eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_val.name] = md.agntid
-        if md.agntrole != "":
-            eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_role.name] = md.agntrole
-    
-    metadataRecord[labels.pres_entity.name][labels.evt_parent_entity.name].append(eventRecord)
+    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_typ.name] = LNK_AGNT_ID_TYPE
+    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_val.name] = LNK_AGNT_ID_VAL
 
-    print("\nthe following metadata record will be created: {}".format(metadataRecord))
-    return metadataRecord
+    mdr[labels.pres_entity.name][labels.evt_parent_entity.name].append(eventRecord)
+
+    return mdr
 
 
-def insertRecordInDB(metadataRecord):
+def addMsgDigestCalcEvent(mdr, chksm, chksmAlgo):
+    eventRecord = {}
+    eventRecord[labels.evt_entity.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_id.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_typ.name] = EVT_ID_TYP
+    eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_val.name] = getUniqueID()
+    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = EVT_TYP_MSGDGST_CALC
+    eventRecord[labels.evt_entity.name][labels.evt_dttime.name] = getCurrentEDTFTimestamp()
+
+    eventRecord[labels.evt_entity.name][labels.evt_detail_parent.name] = []
+    eventDetailRecord = {}  # Create a single record for event detail information
+    eventDetailRecord[labels.evt_detail_info.name] = {}
+    eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail.name] = CHECKSUM_ALGO
+    eventRecord[labels.evt_entity.name][labels.evt_detail_parent.name].append(eventDetailRecord)
+
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm.name] = EVT_OUTCM_SUCCESS
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name][labels.evt_outcm_detail_note.name] = "Message digest calculated for this object: {}".format(chksm)
+
+    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_typ.name] = LNK_AGNT_ID_TYPE
+    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_val.name] = LNK_AGNT_ID_VAL
+
+    mdr[labels.pres_entity.name][labels.evt_parent_entity.name].append(eventRecord)
+
+    # Record the checksum, and the checksum algorithm in the 'object' entity
+    mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fixity.name][labels.obj_msgdgst_algo.name] = CHECKSUM_ALGO
+    mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fixity.name][labels.obj_msgdgst.name] = chksm
+
+    return mdr
+
+
+def addFileCopyEvent(mdr, evtTyp, srcFilePath, dstFilePath):
+    eventRecord = {}
+    eventRecord[labels.evt_entity.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_id.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_typ.name] = EVT_ID_TYP
+    eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_val.name] = getUniqueID()
+    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = EVT_TYP_REPLICATION
+    eventRecord[labels.evt_entity.name][labels.evt_dttime.name] = getCurrentEDTFTimestamp()
+
+    eventRecord[labels.evt_entity.name][labels.evt_detail_parent.name] = []
+    eventDetailRecord = {}  # Create a single record for event detail information
+    eventDetailRecord[labels.evt_detail_info.name] = {}
+    eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail.name] = "File '{}' replicated as '{}'".format(srcFilePath, dstFilePath)
+    eventRecord[labels.evt_entity.name][labels.evt_detail_parent.name].append(eventDetailRecord)
+
+    eventDetailRecord = {}  # Create another record for event detail information
+    eventDetailRecord[labels.evt_detail_info.name] = {}
+    eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail.name] = EVT_DTL_REPLICATION
+
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm.name] = EVT_OUTCM_SUCCESS
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name][labels.evt_outcm_detail_note.name] = "Original file successfully replicated"
+
+    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_typ.name] = LNK_AGNT_ID_TYPE
+    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_val.name] = LNK_AGNT_ID_VAL
+
+    mdr[labels.pres_entity.name][labels.evt_parent_entity.name].append(eventRecord)
+    return mdr
+
+
+def addFilenameChangeEvent(mdr, dstFilePrelimPath, dstFileUniquePath):
+    eventRecord = {}
+    eventRecord[labels.evt_entity.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_id.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_typ.name] = EVT_ID_TYP
+    eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_val.name] = getUniqueID()
+    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = EVT_TYP_FILENAME_CHNG
+    eventRecord[labels.evt_entity.name][labels.evt_dttime.name] = getCurrentEDTFTimestamp()
+
+    eventRecord[labels.evt_entity.name][labels.evt_detail_parent.name] = []
+    eventDetailRecord = {}  # Create a single record for event detail information
+    eventDetailRecord[labels.evt_detail_info.name] = {}
+    eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail.name] = "Filename for '{}' changed to '{}'".format(dstFilePrelimPath, dstFileUniquePath)
+    eventRecord[labels.evt_entity.name][labels.evt_detail_parent.name].append(eventDetailRecord)
+
+    eventDetailRecord = {}  # Create another record for event detail information
+    eventDetailRecord[labels.evt_detail_info.name] = {}
+    eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail.name] = EVT_DTL_FILENAME_CHNG
+
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm.name] = EVT_OUTCM_SUCCESS
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name][labels.evt_outcm_detail_note.name] = "Name of file successfully changed"
+
+    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_typ.name] = LNK_AGNT_ID_TYPE
+    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_val.name] = LNK_AGNT_ID_VAL
+
+    mdr[labels.pres_entity.name][labels.evt_parent_entity.name].append(eventRecord)
+    return mdr
+
+
+def addFixityCheckEvent(mdr, success):
+    eventRecord = {}
+    eventRecord[labels.evt_entity.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_id.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_typ.name] = EVT_ID_TYP
+    eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_val.name] = getUniqueID()
+    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = EVT_TYP_FIXITY_CHECK
+    eventRecord[labels.evt_entity.name][labels.evt_dttime.name] = getCurrentEDTFTimestamp()
+
+    """
+    eventRecord[labels.evt_entity.name][labels.evt_detail_parent.name] = []
+    eventDetailRecord = {}  # Create a single record for event detail information
+    eventDetailRecord[labels.evt_detail_info.name] = {}
+    eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail.name] = "Filename for '{}' changed to '{}'".format(dstFilePrelimPath, dstFileUniquePath)
+    eventRecord[labels.evt_entity.name][labels.evt_detail_parent.name].append(eventDetailRecord)
+
+    eventDetailRecord = {}  # Create another record for event detail information
+    eventDetailRecord[labels.evt_detail_info.name] = {}
+    eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail.name] = EVT_DTL_FILENAME_CHNG
+    """
+
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm.name] = EVT_OUTCM_SUCCESS
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name][labels.evt_outcm_detail_note.name] = "The calculated message digest matches with the stored message digest"
+
+    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_typ.name] = LNK_AGNT_ID_TYPE
+    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_val.name] = LNK_AGNT_ID_VAL
+
+    mdr[labels.pres_entity.name][labels.evt_parent_entity.name].append(eventRecord)
+    return mdr
+
+
+def addAccessionEvent(mdr):
+    eventRecord = {}
+    eventRecord[labels.evt_entity.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_id.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_typ.name] = EVT_ID_TYP
+    eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_val.name] = getUniqueID()
+    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = EVT_TYP_ACCESSION
+    eventRecord[labels.evt_entity.name][labels.evt_dttime.name] = getCurrentEDTFTimestamp()
+
+    """
+    eventRecord[labels.evt_entity.name][labels.evt_detail_parent.name] = []
+    eventDetailRecord = {}  # Create a single record for event detail information
+    eventDetailRecord[labels.evt_detail_info.name] = {}
+    eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail.name] = "Filename for '{}' changed to '{}'".format(dstFilePrelimPath, dstFileUniquePath)
+    eventRecord[labels.evt_entity.name][labels.evt_detail_parent.name].append(eventDetailRecord)
+
+    eventDetailRecord = {}  # Create another record for event detail information
+    eventDetailRecord[labels.evt_detail_info.name] = {}
+    eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail.name] = EVT_DTL_FILENAME_CHNG
+    """
+
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm.name] = EVT_OUTCM_SUCCESS
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name] = {}
+    objectIdVal = mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_id.name][labels.obj_id_val.name]
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name][labels.evt_outcm_detail_note.name] = "Object with ID '{}' successfully included in the database".format(objectIdVal)
+
+    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name] = {}
+    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_typ.name] = LNK_AGNT_ID_TYPE
+    eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_val.name] = LNK_AGNT_ID_VAL
+
+    mdr[labels.pres_entity.name][labels.evt_parent_entity.name].append(eventRecord)
+    return mdr
+
+def updateSerialNumber(mdr, serialNbr):
+    mdr[labels.admn_entity.name][labels.serial_nbr.name] = serialNbr
+    return mdr
+
+
+def insertRecordInDB(mdr):
     """insertRecordInDB
 
     Arguments:
-        metadataRecord
+        mdr: the metadata record to be inserted
 
     This function creates a database entry pertaining to the file being transferred.
     
     """
     
+    mdr = addAccessionEvent(mdr)
+
     try:
-        dbInsertResult = dbHandle[dbCollection].insert_one(metadataRecord)
+        dbInsertResult = dbHandle[dbCollection].insert_one(mdr)
     except pymongo.errors.PyMongoError as ExceptionPyMongoError:
         print_error(ExceptionPyMongoError)
         return(ERROR_CANNOT_INSERT_INTO_DB)
@@ -430,20 +611,29 @@ def transferFiles(src, dst, eadInfo):
             srcFileName = os.path.basename(fileName)
             srcFileExt = srcFileName.split('.')[-1]
 
-            uniqueId = getUniqueID()  # This generates a unique identifier to
-                                      # be used both as a file name, and for
-                                      # the _id field for MongoDB records.
+            # Initialize a metadata record object
+            recordParams = {}
+            recordParams["fileName"] = fileName
+            recordParams["fileSize"] = os.path.getsize(fileName)
+            recordParams["fmtName"] = getFileFormatName(srcFileName)
+            recordParams["fmtVer"] = getFileFormatVersion(srcFileName)
+            metadataRecord = initMetadataRecord(recordParams)
+
+            # Extract the unique id from the just-initialized record
+            uniqueId = metadataRecord["_id"]
 
             # Create the unique destination file path using the dst (destination
             # directory), and the uniqueId generated using ObjectId()
+            dstFilePrelimPath = os.path.join(dst, srcFileName)
             dstFileUniquePath = os.path.join(dst, uniqueId + "." + srcFileExt)
             dstFileName = os.path.basename(dstFileUniquePath)
-            
+
             # Calculate the checksum for the source file. This will be used
             # later to verify the contents of the file once it has been copied
             # or moved to the destination directory
             srcChecksum = getFileChecksum(fileName)
-            srcChecksumTimestamp = getCurrentEDTFTimestamp()
+
+            metadataRecord = addMsgDigestCalcEvent(metadataRecord, srcChecksum, CHECKSUM_ALGO)
 
             # To be conservative about the transfers, this script implements the move operation as:
             # 1. COPY the file from source to destination.
@@ -451,14 +641,19 @@ def transferFiles(src, dst, eadInfo):
             # 3. DELETE the copied file in case the checksums do not match.
             # 4. DELETE the original file in case the checksums match.
             print_info("{} '{}' from '{}' to '{}'".format("Moving" if move == True else "Copying", os.path.basename(fileName), src, dst))
-            
-            srcFileSize = os.path.getsize(fileName)
-            fileFormatName = getFileFormatName(srcFileName)
-            fileFormatVersion = getFileFormatVersion(srcFileName)
 
             # Make a copy of the source file at the destination path
-            shutil.copy(fileName, dstFileUniquePath)
-            
+            shutil.copy(fileName, dstFilePrelimPath)
+            if move == True:
+                eventType = "migration"
+            else:
+                eventType = "replication"
+            metadataRecord = addFileCopyEvent(metadataRecord, eventType, fileName, dstFilePrelimPath)
+
+            # Rename the destination file
+            os.rename(dstFilePrelimPath, dstFileUniquePath)
+            metadataRecord = addFilenameChangeEvent(metadataRecord, dstFilePrelimPath, dstFileUniquePath)
+
             # Calculate the checksum for the file once copied to the destination.
             dstChecksum = getFileChecksum(dstFileUniquePath)
             # Compare the checksums of the source and destination files to 
@@ -476,33 +671,16 @@ def transferFiles(src, dst, eadInfo):
                     print_error(ExceptionFileRemoval)
                     exit(ERROR_CANNOT_REMOVE_FILE)
 
-                # Remove entry from DB
+                # Remove entry from DB if present
                 DeleteRecordFromDB(uniqueId)
 
                 returnData['status'] = False
                 returnData['comment'] = "Checksum mismatch for '{}', and '{}'. Aborted transfers for remaining files in directory.".format(fileName, dstFileUniquePath)
                 return returnData  # Something went wrong, return False
             else:
-                if move == True:
-                    eventType = "migration"
-                else:
-                    eventType = "replication"
+                metadataRecord = addFixityCheckEvent(metadataRecord, True)
 
-                eventDetailString = getEventDetails()
-                eventOutcomeString = getEventOutcome()
-                eventOutcomeDetailString = getEventOutcomeDetail()
-                linkingAgentId = getLinkingAgentId()
-                linkingAgentRole = getLinkingAgentRole()
-
-                currentTimeStamp = getCurrentEDTFTimestamp()
-
-                metadataValues = {"snbr": fileSerialNo, "srcfile": fileName, "srcdir": srcDirectory, "dstfile": dstFileName, "dstdir": dstDirectory,
-                                  "uid": uniqueId, "chksum": srcChecksum, "chksumalgo":checksumAlgo, "ead": eadInfo, "timestamp": currentTimeStamp,
-                                  "evttyp": eventType, "srcfilesz": srcFileSize, "fmtname": fileFormatName, "fmtver": fileFormatVersion, 
-                                  "evtdtl": eventDetailString, "evtout": eventOutcomeString, "evtoutdtl": eventOutcomeDetailString,
-                                  "agntid": linkingAgentId, "agntrole": linkingAgentRole}
-
-                metadataRecord = createMetadataRecord(metadataValues)
+                metadataRecord = updateSerialNumber(metadataRecord, fileSerialNo)
 
                 # Insert the record into the DB first, and THEN copy/move the file.
                 dbRetValue = insertRecordInDB(metadataRecord)
