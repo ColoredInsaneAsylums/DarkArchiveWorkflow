@@ -237,66 +237,69 @@ def getLinkingAgentRole():
     return ""  # TODO: temporary, needs more work!!
 
 
-def createMetadataRecord(serialNo, srcFileName, srcDirName, uniqueId, dstFileName,
-                         dstDirName, checksum, eadInfo, timestamp, csAlgo, eventType,
-                         fileSize, formatName, formatVersion, eventDetailString,
-                         eventOutcomeString, eventOutcomeDetailString, linkingAgentId, linkingAgentRole):
+def createMetadataRecord(md):
+
+    md = namedtuple('MD', md.keys())(*md.values())
     metadataRecord = {}
-    metadataRecord["_id"] = uniqueId
+    metadataRecord["_id"] = md.uid
 
     # Create the ADMIN entity here:
     metadataRecord[labels.admn_entity.name] = {}
-    metadataRecord[labels.admn_entity.name][labels.serial_nbr.name] = serialNo
+    metadataRecord[labels.admn_entity.name][labels.serial_nbr.name] = md.snbr
 
     # Create the PREMIS (or preservation) entity here:
     metadataRecord[labels.pres_entity.name] = {}
     metadataRecord[labels.pres_entity.name][labels.obj_entity.name] = {}
     metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_id.name] = {}
     metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_id.name][labels.obj_id_typ.name] = OBJ_ID_TYPE
-    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_id.name][labels.obj_id_val.name] = uniqueId
+    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_id.name][labels.obj_id_val.name] = md.uid
     metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_cat.name] = "<--M/NR-->"
     metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name] = {}
     metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fixity.name] = {}
-    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fixity.name][labels.obj_msgdgst_algo.name] = csAlgo
-    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fixity.name][labels.obj_msgdgst.name] = checksum
-    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_size.name] = fileSize
+    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fixity.name][labels.obj_msgdgst_algo.name] = md.chksumalgo
+    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fixity.name][labels.obj_msgdgst.name] = md.chksum
+    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_size.name] = md.srcfilesz
     metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fmt.name] = {}
     metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fmt.name][labels.obj_fmt_dsgn.name] = {}
-    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fmt.name][labels.obj_fmt_dsgn.name][labels.obj_fmt_name.name] = formatName
-    if formatVersion != "":
-        metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fmt.name][labels.obj_fmt_dsgn.name][labels.obj_fmt_ver.name] = formatVersion
+    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fmt.name][labels.obj_fmt_dsgn.name][labels.obj_fmt_name.name] = md.fmtname
+    if md.fmtver != "":
+        metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_props.name][labels.obj_fmt.name][labels.obj_fmt_dsgn.name][labels.obj_fmt_ver.name] = md.fmtver
 
-    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_orig_name.name] = srcFileName
+    metadataRecord[labels.pres_entity.name][labels.obj_entity.name][labels.obj_orig_name.name] = md.srcfile
     
+    # Create a parent entity (list) of all PREMIS 'event' entities.
     metadataRecord[labels.pres_entity.name][labels.evt_parent_entity.name] = []
+
+    # Create an event record corresponding to a single event
     eventRecord = {}
     eventRecord[labels.evt_entity.name] = {}
     eventRecord[labels.evt_entity.name][labels.evt_id.name] = {}
     eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_typ.name] = EVT_ID_TYP
     eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_val.name] = "<--M/NR-->"
-    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = eventType
-    eventRecord[labels.evt_entity.name][labels.evt_dttime.name] = timestamp
+    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = md.evttyp
+    eventRecord[labels.evt_entity.name][labels.evt_dttime.name] = md.timestamp
 
-    if eventDetailString != "":
+    if md.evtdtl != "":
+        # Create a parent entity (list) for all PREMIS 'eventDetailInformation' entities
         eventRecord[labels.evt_entity.name][labels.evt_detail_parent.name] = []
-        eventDetailRecord = {}
+        eventDetailRecord = {}  # Create a single record for event detail information
         eventDetailRecord[labels.evt_detail_info.name] = {}
-        eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail.name] = eventDetailString
+        eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail.name] = md.evtdtl
         eventRecord[labels.evt_entity.name][labels.evt_detail_parent.name].append(eventDetailRecord)
 
-    if eventOutcomeString != "":
+    if md.evtout != "":
         eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name] = {}
-        eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm.name] = eventOutcomeString
-        if eventOutcomeDetailString != "":
+        eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm.name] = md.evtout
+        if md.evtoutdtl != "":
             eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name] = {}
-            eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name][labels.evt_outcm_detail_note.name] = eventOutcomeDetailString
+            eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name][labels.evt_outcm_detail_note.name] = md.evtoutdtl
 
-    if linkingAgentId != "":
+    if md.agntid != "":
         eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name] = {}
         eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_typ.name] = LNK_AGNT_ID_TYPE
-        eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_val.name] = linkingAgentId
-        if linkingAgentRole != "":
-            eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_role.name] = linkingAgentRole
+        eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_val.name] = md.agntid
+        if md.agntrole != "":
+            eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_role.name] = md.agntrole
     
     metadataRecord[labels.pres_entity.name][labels.evt_parent_entity.name].append(eventRecord)
 
@@ -493,15 +496,13 @@ def transferFiles(src, dst, eadInfo):
 
                 currentTimeStamp = getCurrentEDTFTimestamp()
 
-                metadataRecord = createMetadataRecord(fileSerialNo, fileName, srcDirectory,
-                                            uniqueId, dstFileName,
-                                            dstDirectory, srcChecksum,
-                                            eadInfo, currentTimeStamp,
-                                            checksumAlgo, eventType,
-                                            srcFileSize, fileFormatName,
-                                            fileFormatVersion, eventDetailString,
-                                            eventOutcomeString, eventOutcomeDetailString,
-                                            linkingAgentId, linkingAgentRole)
+                metadataValues = {"snbr": fileSerialNo, "srcfile": fileName, "srcdir": srcDirectory, "dstfile": dstFileName, "dstdir": dstDirectory,
+                                  "uid": uniqueId, "chksum": srcChecksum, "chksumalgo":checksumAlgo, "ead": eadInfo, "timestamp": currentTimeStamp,
+                                  "evttyp": eventType, "srcfilesz": srcFileSize, "fmtname": fileFormatName, "fmtver": fileFormatVersion, 
+                                  "evtdtl": eventDetailString, "evtout": eventOutcomeString, "evtoutdtl": eventOutcomeDetailString,
+                                  "agntid": linkingAgentId, "agntrole": linkingAgentRole}
+
+                metadataRecord = createMetadataRecord(metadataValues)
 
                 # Insert the record into the DB first, and THEN copy/move the file.
                 dbRetValue = insertRecordInDB(metadataRecord)
