@@ -327,7 +327,7 @@ def initMetadataRecord(initParams):
     eventRecord[labels.evt_entity.name][labels.evt_id.name] = {}
     eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_typ.name] = EVT_ID_TYP
     eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_val.name] = getUniqueID()
-    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = EVT_TYP_ID_ASSGN
+    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = vocab.evtTyp.idAssgn
     eventRecord[labels.evt_entity.name][labels.evt_dttime.name] = getCurrentEDTFTimestamp()
 
     """
@@ -360,7 +360,7 @@ def addMsgDigestCalcEvent(mdr, chksm, chksmAlgo):
     eventRecord[labels.evt_entity.name][labels.evt_id.name] = {}
     eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_typ.name] = EVT_ID_TYP
     eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_val.name] = getUniqueID()
-    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = EVT_TYP_MSGDGST_CALC
+    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = vocab.evtTyp.msgDgstCalc
     eventRecord[labels.evt_entity.name][labels.evt_dttime.name] = getCurrentEDTFTimestamp()
 
     eventRecord[labels.evt_entity.name][labels.evt_detail_parent.name] = []
@@ -393,7 +393,7 @@ def addFileCopyEvent(mdr, evtTyp, srcFilePath, dstFilePath):
     eventRecord[labels.evt_entity.name][labels.evt_id.name] = {}
     eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_typ.name] = EVT_ID_TYP
     eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_val.name] = getUniqueID()
-    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = EVT_TYP_REPLICATION
+    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = vocab.evtTyp.replication
     eventRecord[labels.evt_entity.name][labels.evt_dttime.name] = getCurrentEDTFTimestamp()
 
     eventRecord[labels.evt_entity.name][labels.evt_detail_parent.name] = []
@@ -425,7 +425,7 @@ def addFilenameChangeEvent(mdr, dstFilePrelimPath, dstFileUniquePath):
     eventRecord[labels.evt_entity.name][labels.evt_id.name] = {}
     eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_typ.name] = EVT_ID_TYP
     eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_val.name] = getUniqueID()
-    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = EVT_TYP_FILENAME_CHNG
+    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = vocab.evtTyp.filenameChg
     eventRecord[labels.evt_entity.name][labels.evt_dttime.name] = getCurrentEDTFTimestamp()
 
     eventRecord[labels.evt_entity.name][labels.evt_detail_parent.name] = []
@@ -457,7 +457,7 @@ def addFixityCheckEvent(mdr, success):
     eventRecord[labels.evt_entity.name][labels.evt_id.name] = {}
     eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_typ.name] = EVT_ID_TYP
     eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_val.name] = getUniqueID()
-    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = EVT_TYP_FIXITY_CHECK
+    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = vocab.evtTyp.fixityChk
     eventRecord[labels.evt_entity.name][labels.evt_dttime.name] = getCurrentEDTFTimestamp()
 
     """
@@ -491,7 +491,7 @@ def addAccessionEvent(mdr):
     eventRecord[labels.evt_entity.name][labels.evt_id.name] = {}
     eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_typ.name] = EVT_ID_TYP
     eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_val.name] = getUniqueID()
-    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = EVT_TYP_ACCESSION
+    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = vocab.evtTyp.accession
     eventRecord[labels.evt_entity.name][labels.evt_dttime.name] = getCurrentEDTFTimestamp()
 
     """

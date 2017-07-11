@@ -1,4 +1,13 @@
 {
+    "evtTyp": {
+        "accession": "accession",
+        "filenameChg": "filenameChange",
+        "fixityChk": "fixityCheck",
+        "idAssgn": "identifierAssignment",
+        "msgDgstCalc": "messageDigestCalculation",
+        "replication": "replication"
+    },
+
     "evtOutcm": {
         "success": "success",
         "failure": "failure"
