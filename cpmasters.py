@@ -79,7 +79,12 @@ dbHandle = None # Stores the handle to access the database. Initialized to None.
 dbCollection = None
 
 # LABEL DICTIONARIES
+LABELS_FILE = "labels.json"
 labels = dict()
+
+# CONTROLLED VOCABULARY
+VOCAB_FILE = "vocab.json"
+vocab = dict()
 
 # ERROR CODES
 ERROR_INVALID_ARGUMENT_STRING = -1
@@ -96,6 +101,7 @@ ERROR_CANNOT_READ_LABELS_FILE = -11
 ERROR_KEY_NOT_FOUND = -12
 ERROR_INVALID_JSON_FILE = -13
 ERROR_CANNOT_CREATE_DESTINATION_DIRECTORY = -14
+ERROR_CANNOT_READ_VOCAB_FILE = -15
 
 # METADATA-RELATED CONSTANTS
 OBJ_ID_TYPE = "UUID"
@@ -207,32 +213,50 @@ def init_db():
     return dbParamsDict
 
 
-def read_label_dictionary():
-    """read_label_dictionary()
+def readLabelDictionary():
+    """readLabelDictionary()
 
     Arguments:
         None
 
-    This function reads the file 'labels.json' to populate the label dictionary.
+    This function reads the JSON file containing entity labels to populate the label dictionary.
     This label dictionary will be used to assign labels to metadata items to be 
     recorded into a database for each transfer.
     """
 
     try:
-        jsonObject = open("labels.json", "r").read()
+        jsonObject = open(LABELS_FILE, "r").read()
     except IOError as jsonReadException:
         print_error(jsonReadException)
-        print_error("\nCould not read the labels file 'labels.json'")
+        print_error("\nCould not read the labels file '{}'".format(LABELS_FILE))
         quit(ERROR_CANNOT_READ_LABELS_FILE)
 
     try:
         labels = json.loads(jsonObject, object_hook= lambda d: namedtuple('Labels', d.keys())(*d.values()))
     except json.JSONDecodeError as jsonDecodeError:
         print_error(jsonDecodeError)
-        print_error("The file 'labels.json' is not a valid JSON file. Please check the file for formatting errors.")
+        print_error("The file '{}' is not a valid JSON file. Please check the file for formatting errors.".format(LABELS_FILE))
         exit(ERROR_INVALID_JSON_FILE)
 
     return labels
+
+
+def readControlledVocabulary():
+    try:
+        jsonObject = open(VOCAB_FILE, "r").read()
+    except IOError as jsonReadException:
+        print_error(jsonReadException)
+        print_error("\nCould not read the labels file '{}'".format(VOCAB_FILE))
+        quit(ERROR_CANNOT_READ_VOCAB_FILE)
+
+    try:
+        vocab = json.loads(jsonObject, object_hook= lambda d: namedtuple('Vocab', d.keys())(*d.values()))
+    except json.JSONDecodeError as jsonDecodeError:
+        print_error(jsonDecodeError)
+        print_error("The file '{}' is not a valid JSON file. Please check the file for formatting errors.".format(VOCAB_FILE))
+        exit(ERROR_INVALID_JSON_FILE)
+
+    return vocab
 
 
 def getEventDetails():
@@ -297,7 +321,7 @@ def initMetadataRecord(initParams):
     # Create a parent entity (list) of all PREMIS 'event' entities.
     mdr[labels.pres_entity.name][labels.evt_parent_entity.name] = []
 
-    # Add an event record corresponding to this event
+    # Add an event record corresponding to the 'Identifier Assignment' event
     eventRecord = {}
     eventRecord[labels.evt_entity.name] = {}
     eventRecord[labels.evt_entity.name][labels.evt_id.name] = {}
@@ -317,9 +341,9 @@ def initMetadataRecord(initParams):
     """
 
     eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name] = {}
-    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm.name] = EVT_OUTCM_SUCCESS
-    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name] = {}
-    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name][labels.evt_outcm_detail_note.name] = "Unique ID '{}' successfully assigned to this object".format(uniqueId)
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm.name] = vocab.evtOutcm.success
+    # eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name] = {}
+    # eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name][labels.evt_outcm_detail_note.name] = "Unique ID '{}' successfully assigned to this object".format(uniqueId)
 
     eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name] = {}
     eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_typ.name] = LNK_AGNT_ID_TYPE
@@ -346,9 +370,9 @@ def addMsgDigestCalcEvent(mdr, chksm, chksmAlgo):
     eventRecord[labels.evt_entity.name][labels.evt_detail_parent.name].append(eventDetailRecord)
 
     eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name] = {}
-    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm.name] = EVT_OUTCM_SUCCESS
-    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name] = {}
-    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name][labels.evt_outcm_detail_note.name] = "Message digest calculated for this object: {}".format(chksm)
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm.name] = vocab.evtOutcm.success
+    #eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name] = {}
+    #eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name][labels.evt_outcm_detail_note.name] = "Message digest calculated for this object: {}".format(chksm)
 
     eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name] = {}
     eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_typ.name] = LNK_AGNT_ID_TYPE
@@ -383,9 +407,9 @@ def addFileCopyEvent(mdr, evtTyp, srcFilePath, dstFilePath):
     eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail.name] = EVT_DTL_REPLICATION
 
     eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name] = {}
-    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm.name] = EVT_OUTCM_SUCCESS
-    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name] = {}
-    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name][labels.evt_outcm_detail_note.name] = "Original file successfully replicated"
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm.name] = vocab.evtOutcm.success
+    #eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name] = {}
+    #eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name][labels.evt_outcm_detail_note.name] = "Original file successfully replicated"
 
     eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name] = {}
     eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_typ.name] = LNK_AGNT_ID_TYPE
@@ -415,9 +439,9 @@ def addFilenameChangeEvent(mdr, dstFilePrelimPath, dstFileUniquePath):
     eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail.name] = EVT_DTL_FILENAME_CHNG
 
     eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name] = {}
-    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm.name] = EVT_OUTCM_SUCCESS
-    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name] = {}
-    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name][labels.evt_outcm_detail_note.name] = "Name of file successfully changed"
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm.name] = vocab.evtOutcm.success
+    #eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name] = {}
+    #eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name][labels.evt_outcm_detail_note.name] = "Name of file successfully changed"
 
     eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name] = {}
     eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_typ.name] = LNK_AGNT_ID_TYPE
@@ -449,9 +473,9 @@ def addFixityCheckEvent(mdr, success):
     """
 
     eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name] = {}
-    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm.name] = EVT_OUTCM_SUCCESS
-    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name] = {}
-    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name][labels.evt_outcm_detail_note.name] = "The calculated message digest matches with the stored message digest"
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm.name] = vocab.evtOutcm.success
+    #eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name] = {}
+    #eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name][labels.evt_outcm_detail_note.name] = "The calculated message digest matches with the stored message digest"
 
     eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name] = {}
     eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_typ.name] = LNK_AGNT_ID_TYPE
@@ -483,10 +507,10 @@ def addAccessionEvent(mdr):
     """
 
     eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name] = {}
-    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm.name] = EVT_OUTCM_SUCCESS
-    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name] = {}
-    objectIdVal = mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_id.name][labels.obj_id_val.name]
-    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name][labels.evt_outcm_detail_note.name] = "Object with ID '{}' successfully included in the database".format(objectIdVal)
+    eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm.name] = vocab.evtOutcm.success
+    #eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name] = {}
+    #objectIdVal = mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_id.name][labels.obj_id_val.name]
+    #eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name][labels.evt_outcm_detail.name][labels.evt_outcm_detail_note.name] = "Object with ID '{}' successfully included in the database".format(objectIdVal)
 
     eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name] = {}
     eventRecord[labels.evt_entity.name][labels.evt_lnk_agnt_id.name][labels.evt_lnk_agnt_id_typ.name] = LNK_AGNT_ID_TYPE
@@ -851,11 +875,14 @@ for row in transferList:
 '''
 
 # READ-IN THE LABEL DICTIONARY
-labels = read_label_dictionary()
+labels = readLabelDictionary()
 print_info("The following labels will be used for labeling metadata items in the database records:")
 #for key in labels:
     #print_info(key, ":", labels[key])
 print_info(labels)
+
+# READ-IN THE CONTROLLED VOCABULARY
+vocab = readControlledVocabulary()
 
 # CREATE DATABASE CONNECTION
 dbParams = init_db()  # TODO: there needs to be a check to determine if the 
