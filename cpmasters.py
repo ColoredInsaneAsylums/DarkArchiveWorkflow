@@ -118,6 +118,9 @@ EVT_TYP_FILENAME_CHNG = "filenameChange"
 EVT_TYP_FIXITY_CHECK = "fixityCheck"
 EVT_TYP_ACCESSION = "accession"
 
+EAD_MARKER = "ead:"
+EAD_INFO_LABEL = "eadInfo"
+
 # FUNCTION DEFINITIONS 
 
 def print_info(*args):
@@ -260,6 +263,17 @@ def initMetadataRecord(initParams):
     # Create the ADMIN entity here:
     mdr[labels.admn_entity.name] = {}
     mdr[labels.admn_entity.name][labels.serial_nbr.name] = MD_INIT_STRING
+
+    # Remove empty fields from the EAD info dictionary
+    emptyEADFields = []
+    for key, value in iter(initParams[EAD_INFO_LABEL].items()):
+        if value == "":
+            emptyEADFields.append(key)
+
+    for key in emptyEADFields:
+        initParams[EAD_INFO_LABEL].pop(key)
+
+    mdr[labels.admn_entity.name].update(initParams[EAD_INFO_LABEL])
 
     # Create the PREMIS (or preservation) entity here:
     mdr[labels.pres_entity.name] = {}
@@ -617,6 +631,7 @@ def transferFiles(src, dst, eadInfo):
             recordParams["fileSize"] = os.path.getsize(fileName)
             recordParams["fmtName"] = getFileFormatName(srcFileName)
             recordParams["fmtVer"] = getFileFormatVersion(srcFileName)
+            recordParams[EAD_INFO_LABEL] = eadInfo
             metadataRecord = initMetadataRecord(recordParams)
 
             # Extract the unique id from the just-initialized record
@@ -785,7 +800,7 @@ if batchMode == True:  # Batch mode. Read and validate CSV file.
 
     print("Checking the header row. Header: {}".format(firstRow))
     for col in firstRow:
-        if col.lower() in ['source', 'destination'] or col.startswith('ead:'):
+        if col.lower() in ['source', 'destination'] or col.startswith(EAD_MARKER):
             continue
         else:
             firstRowPresent = False
@@ -800,7 +815,7 @@ if batchMode == True:  # Batch mode. Read and validate CSV file.
     numEADCols = 0
     EADTags = {}
     for col in firstRow:
-        if col.startswith('ead:'):
+        if col.startswith(EAD_MARKER):
             numEADCols += 1
             EADTags[numEADCols] = col.split(':')[-1]
 
