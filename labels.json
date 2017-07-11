@@ -22,7 +22,7 @@
     "obj_id_typ": {"name": "objectIdentifierType", "oblg": "M", "rpt": "NR"},
     "obj_id_val": {"name": "objectIdentifierValue", "oblg": "M", "rpt": "NR"},
     "obj_cat": {"name": "objectCategory", "oblg": "M", "rpt": "NR"},
-    "obj_props": {"name": "objectCharacteristics", "oblg": "M", "rpt": "NR"},
+    "obj_chars": {"name": "objectCharacteristics", "oblg": "M", "rpt": "NR"},
     "obj_fixity": {"name": "fixity", "oblg": "M", "rpt": "NR"},
     "obj_msgdgst_algo": {"name": "messageDigestAlgorithm", "oblg": "M", "rpt": "NR"},
     "obj_msgdgst": {"name": "messageDigest", "oblg": "M", "rpt": "NR"},
@@ -43,7 +43,17 @@
 
     "evt_detail_parent": {"name": "eventDetailInformationList", "oblg": "O", "rpt": "NR"},
     "evt_detail_info": {"name": "eventDetailInformation", "oblg": "O", "rpt": "R"},
-    "evt_detail_extension": {"name": "eventDetailExtension", "oblg": "O", "rpt": "N"},
+
+    "evt_detail_ext": {"name": "eventDetailExtension", "oblg": "O", "rpt": "NR"},
+    "evt_detail_mthd": {"name": "method", "oblg": "O", "rpt": "NR"},
+    "evt_detail_algo": {"name": "algorithm", "oblg": "O", "rpt": "NR"},
+    "evt_detail_proglang": {"name": "programmingLanguage", "oblg": "O", "rpt": "NR"},
+    "evt_detail_id": {"name": "id", "oblg": "O", "rpt": "NR"},
+    "evt_detail_src": {"name": "source", "oblg": "O", "rpt": "NR"},
+    "evt_detail_dst": {"name": "destination", "oblg": "O", "rpt": "NR"},
+    "evt_detail_chksm": {"name": "checksum", "oblg": "O", "rpt": "NR"},
+    "evt_detail_calc_chksm": {"name": "calculatedChecksum", "oblg": "O", "rpt": "NR"},
+
     "evt_detail": {"name": "eventDetail", "oblg": "O", "rpt": "NR"},
 
     "evt_outcm_info": {"name": "eventOutcomeInformation", "oblg": "O", "rpt": "NR"},
