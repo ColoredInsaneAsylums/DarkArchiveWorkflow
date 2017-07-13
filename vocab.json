@@ -11,5 +11,7 @@
     "evtOutcm": {
         "success": "success",
         "failure": "failure"
-    }
+    },
+
+    "objCat": "file"
 }

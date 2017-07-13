@@ -302,7 +302,7 @@ def initMetadataRecord(initParams):
     mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_id.name] = {}
     mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_id.name][labels.obj_id_typ.name] = OBJ_ID_TYPE
     mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_id.name][labels.obj_id_val.name] = uniqueId
-    mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_cat.name] = "<M/NR>"
+    mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_cat.name] = 
     mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_chars.name] = {}
     mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_chars.name][labels.obj_fixity.name] = {}
     mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_chars.name][labels.obj_fixity.name][labels.obj_msgdgst_algo.name] = MD_INIT_STRING
@@ -324,7 +324,7 @@ def initMetadataRecord(initParams):
     eventRecord[labels.evt_entity.name][labels.evt_id.name] = {}
     eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_typ.name] = EVT_ID_TYP
     eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_val.name] = getUniqueID()
-    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = vocab.evtTyp.idAssgn
+    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = vocab.objCat
     eventRecord[labels.evt_entity.name][labels.evt_dttime.name] = getCurrentEDTFTimestamp()
 
     # Create a parent entity (list) for all PREMIS 'eventDetailInformation' entities
