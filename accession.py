@@ -103,6 +103,10 @@ ERROR_INVALID_JSON_FILE = -13
 ERROR_CANNOT_CREATE_DESTINATION_DIRECTORY = -14
 ERROR_CANNOT_READ_VOCAB_FILE = -15
 
+# CSV FILE RELATED CONSTANTS
+CSV_COL_1_NAME = "source"
+CSV_COL_2_NAME = "destination"
+
 # METADATA-RELATED CONSTANTS
 OBJ_ID_TYPE = "UUID"
 EVT_ID_TYP = "UUID"
@@ -567,6 +571,13 @@ def getFileFormatVersion(fileName):
     return ""  # TODO: This is just a STAND-IN for testing. NEEDS to be changed.
 
 
+def isHeaderValid(hdr):
+    if hdr[0] == CSV_COL_1_NAME and hdr[1] == CSV_COL_2_NAME:
+        return True
+    else:
+        return False
+
+
 def transferFiles(src, dst, arrangeInfo):
     """transferFiles(): Carries out the actual transfer of files.
     
@@ -805,21 +816,14 @@ if batchMode == True:  # Batch mode. Read and validate CSV file.
     
     # Extract the first row to check if it is a header.
     firstRow = next(csvReader, None)
-    firstRowPresent = True
 
     if firstRow == None:  # This also serves as a check for an empty CSV file
         print("The header row is invalid")
         exit(ERROR_INVALID_HEADER_ROW)
 
     print("Checking the header row. Header: {}".format(firstRow))
-    for col in firstRow:
-        if col.lower() in ['source', 'destination'] or col.startswith(ARRANGE_INFO_MARKER):
-            continue
-        else:
-            firstRowPresent = False
-            break
 
-    if firstRowPresent == False:
+    if isHeaderValid(firstRow) == False:
         print("The header row is invalid")
         exit(ERROR_INVALID_HEADER_ROW)
 
