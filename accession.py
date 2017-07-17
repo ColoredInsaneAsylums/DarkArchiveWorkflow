@@ -121,8 +121,8 @@ EVT_DTL_FILENAME_CHNG = PYTHON_VER_STR + "; os.rename"
 UNIQUE_ID_ALGO = "UUID v4"
 UNIQUE_ID_METHOD = "uuid.uuid4()"
 
-EAD_MARKER = "ead:"
-EAD_INFO_LABEL = "eadInfo"
+ARRANGE_INFO_MARKER = "arrange:"
+ARRANGE_INFO_LABEL = "arrangeInfo"
 
 # FUNCTION DEFINITIONS 
 
@@ -247,13 +247,13 @@ def readControlledVocabulary():
         quit(ERROR_CANNOT_READ_VOCAB_FILE)
 
     try:
-        vocab = json.loads(jsonObject, object_hook= lambda d: namedtuple('Vocab', d.keys())(*d.values()))
+        jsonVocab = json.loads(jsonObject, object_hook= lambda d: namedtuple('Vocab', d.keys())(*d.values()))
     except json.JSONDecodeError as jsonDecodeError:
         print_error(jsonDecodeError)
         print_error("The file '{}' is not a valid JSON file. Please check the file for formatting errors.".format(VOCAB_FILE))
         exit(ERROR_INVALID_JSON_FILE)
 
-    return vocab
+    return jsonVocab
 
 
 def getEventDetails():
@@ -285,16 +285,16 @@ def initMetadataRecord(initParams):
     mdr[labels.admn_entity.name] = {}
     mdr[labels.admn_entity.name][labels.serial_nbr.name] = MD_INIT_STRING
 
-    # Remove empty fields from the EAD info dictionary
-    emptyEADFields = []
-    for key, value in iter(initParams[EAD_INFO_LABEL].items()):
+    # Remove empty fields from the Arrange info dictionary
+    arrangeInfoFields = []
+    for key, value in iter(initParams[ARRANGE_INFO_LABEL].items()):
         if value == "":
-            emptyEADFields.append(key)
+            arrangeInfoFields.append(key)
 
-    for key in emptyEADFields:
-        initParams[EAD_INFO_LABEL].pop(key)
+    for key in arrangeInfoFields:
+        initParams[ARRANGE_INFO_LABEL].pop(key)
 
-    mdr[labels.admn_entity.name].update(initParams[EAD_INFO_LABEL])
+    mdr[labels.admn_entity.name].update(initParams[ARRANGE_INFO_LABEL])
 
     # Create the PREMIS (or preservation) entity here:
     mdr[labels.pres_entity.name] = {}
@@ -302,7 +302,7 @@ def initMetadataRecord(initParams):
     mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_id.name] = {}
     mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_id.name][labels.obj_id_typ.name] = OBJ_ID_TYPE
     mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_id.name][labels.obj_id_val.name] = uniqueId
-    mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_cat.name] = 
+    mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_cat.name] = vocab.objCat
     mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_chars.name] = {}
     mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_chars.name][labels.obj_fixity.name] = {}
     mdr[labels.pres_entity.name][labels.obj_entity.name][labels.obj_chars.name][labels.obj_fixity.name][labels.obj_msgdgst_algo.name] = MD_INIT_STRING
@@ -324,7 +324,7 @@ def initMetadataRecord(initParams):
     eventRecord[labels.evt_entity.name][labels.evt_id.name] = {}
     eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_typ.name] = EVT_ID_TYP
     eventRecord[labels.evt_entity.name][labels.evt_id.name][labels.evt_id_val.name] = getUniqueID()
-    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = vocab.objCat
+    eventRecord[labels.evt_entity.name][labels.evt_typ.name] = vocab.evtTyp.idAssgn
     eventRecord[labels.evt_entity.name][labels.evt_dttime.name] = getCurrentEDTFTimestamp()
 
     # Create a parent entity (list) for all PREMIS 'eventDetailInformation' entities
@@ -567,7 +567,7 @@ def getFileFormatVersion(fileName):
     return ""  # TODO: This is just a STAND-IN for testing. NEEDS to be changed.
 
 
-def transferFiles(src, dst, eadInfo):
+def transferFiles(src, dst, arrangeInfo):
     """transferFiles(): Carries out the actual transfer of files.
     
     Arguments: 
@@ -642,7 +642,7 @@ def transferFiles(src, dst, eadInfo):
             recordParams["fileSize"] = os.path.getsize(fileName)
             recordParams["fmtName"] = getFileFormatName(srcFileName)
             recordParams["fmtVer"] = getFileFormatVersion(srcFileName)
-            recordParams[EAD_INFO_LABEL] = eadInfo
+            recordParams[ARRANGE_INFO_LABEL] = arrangeInfo
             metadataRecord = initMetadataRecord(recordParams)
 
             # Extract the unique id from the just-initialized record
@@ -813,7 +813,7 @@ if batchMode == True:  # Batch mode. Read and validate CSV file.
 
     print("Checking the header row. Header: {}".format(firstRow))
     for col in firstRow:
-        if col.lower() in ['source', 'destination'] or col.startswith(EAD_MARKER):
+        if col.lower() in ['source', 'destination'] or col.startswith(ARRANGE_INFO_MARKER):
             continue
         else:
             firstRowPresent = False
@@ -824,15 +824,15 @@ if batchMode == True:  # Batch mode. Read and validate CSV file.
         exit(ERROR_INVALID_HEADER_ROW)
 
 
-    # Extract EAD info from header row
-    numEADCols = 0
-    EADTags = {}
+    # Extract Arrange info from header row
+    numArrangeInfoCols = 0
+    arrangeInfoTags = {}
     for col in firstRow:
-        if col.startswith(EAD_MARKER):
-            numEADCols += 1
-            EADTags[numEADCols] = col.split(':')[-1]
+        if col.startswith(ARRANGE_INFO_MARKER):
+            numArrangeInfoCols += 1
+            arrangeInfoTags[numArrangeInfoCols] = col.split(':')[-1]
 
-    minNumCols += numEADCols
+    minNumCols += numArrangeInfoCols
     errorList.append(firstRow + ["Comments"])
     # This for loop reads and checks the format (i.e., presence of at least two
     # columns per row) of the CSV file, and populates 'transferList' which will 
@@ -841,8 +841,8 @@ if batchMode == True:  # Batch mode. Read and validate CSV file.
     # FORMAT RULES/ASSUMPTIONS for the CSV file:
     #   1. The FIRST column specifies SOURCE path
     #   2. The SECOND column specifies DESTINATION path
-    #   3. The remaining columns must be named like "ead:<EAD field/tag>", 
-    #      e.g., "ead:series", "ead:sub-series", etc.
+    #   3. The remaining columns must be named like "arrange:<Arrange Info Field/Tag>", 
+    #      e.g., "arrange:series", "ead:sub-series", etc.
     rowNum = 1
     for row in csvReader:
         if len(row) < minNumCols:  # Check if the row has AT LEAST minNumCols elements.
@@ -884,12 +884,12 @@ for row in transferList:
     src = row[0]
     dst = row[1]
 
-    EADData = {}
+    arrangeInfo = {}
 
-    for eadId in range(1, numEADCols + 1):
-        EADData[EADTags[eadId]] = row[eadId + 1]
+    for arrangeId in range(1, numArrangeInfoCols + 1):
+        arrangeInfo[arrangeInfoTags[arrangeId]] = row[arrangeId + 1]
 
-    print_info("EAD Data: {}".format(EADData))
+    print_info("Arrange Info Data: {}".format(arrangeInfo))
 
     # Check if the source directory exists
     if os.path.isdir(src) != True:  # Source directory doesn't exist.
@@ -900,7 +900,7 @@ Skipping to next transfer.".format(src))
         errorList.append(row + ["Source does not exist"])
         continue
 
-    transferStatus = transferFiles(src, dst, EADData)
+    transferStatus = transferFiles(src, dst, arrangeInfo)
     
     if transferStatus['status'] != True:
         # Something bad happened during this particular transfer.
