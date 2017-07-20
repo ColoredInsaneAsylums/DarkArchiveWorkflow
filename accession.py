@@ -287,7 +287,7 @@ def initMetadataRecord(initParams):
 
     # Create the ADMIN entity here:
     mdr[labels.admn_entity.name] = {}
-    mdr[labels.admn_entity.name][labels.serial_nbr.name] = MD_INIT_STRING
+    mdr[labels.admn_entity.name][labels.arrange_info.name] = {}
 
     # Remove empty fields from the Arrange info dictionary
     arrangeInfoFields = []
@@ -298,7 +298,8 @@ def initMetadataRecord(initParams):
     for key in arrangeInfoFields:
         initParams[ARRANGE_INFO_LABEL].pop(key)
 
-    mdr[labels.admn_entity.name].update(initParams[ARRANGE_INFO_LABEL])
+    mdr[labels.admn_entity.name][labels.arrange_info.name].update(initParams[ARRANGE_INFO_LABEL])
+    mdr[labels.admn_entity.name][labels.arrange_info.name][labels.serial_nbr.name] = MD_INIT_STRING
 
     # Create the PREMIS (or preservation) entity here:
     mdr[labels.pres_entity.name] = {}
@@ -511,7 +512,7 @@ def addAccessionEvent(mdr):
     return mdr
 
 def updateSerialNumber(mdr, serialNbr):
-    mdr[labels.admn_entity.name][labels.serial_nbr.name] = serialNbr
+    mdr[labels.admn_entity.name][labels.arrange_info.name][labels.serial_nbr.name] = serialNbr
     return mdr
 
 
