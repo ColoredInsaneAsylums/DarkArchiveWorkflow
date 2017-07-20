@@ -373,7 +373,7 @@ def addMsgDigestCalcEvent(mdr, chksm, chksmAlgo):
     eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail_ext.name][labels.evt_detail_algo.name] = CHECKSUM_ALGO
     eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail_ext.name][labels.evt_detail_proglang.name] = PYTHON_VER_STR
     eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail_ext.name][labels.evt_detail_mthd.name] = CHECKSUM_METHOD
-    eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail_ext.name][labels.evt_detail_chksm.name] = chksm
+    eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail_ext.name][labels.evt_detail_msgDgst.name] = chksm
     eventRecord[labels.evt_entity.name][labels.evt_detail_parent.name].append(eventDetailRecord)
 
     eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name] = {}
@@ -463,7 +463,7 @@ def addFixityCheckEvent(mdr, success, calcChecksum):
     eventDetailRecord = {}  # Create a single record for event detail information
     eventDetailRecord[labels.evt_detail_info.name] = {}
     eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail_ext.name] = {}
-    eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail_ext.name][labels.evt_detail_calc_chksm.name] = calcChecksum
+    eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail_ext.name][labels.evt_detail_calc_msgDgst.name] = calcChecksum
     eventRecord[labels.evt_entity.name][labels.evt_detail_parent.name].append(eventDetailRecord)
 
     eventRecord[labels.evt_entity.name][labels.evt_outcm_info.name] = {}

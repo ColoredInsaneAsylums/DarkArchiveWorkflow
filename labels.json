@@ -52,8 +52,8 @@
     "evt_detail_id": {"name": "id", "oblg": "O", "rpt": "NR"},
     "evt_detail_src": {"name": "source", "oblg": "O", "rpt": "NR"},
     "evt_detail_dst": {"name": "destination", "oblg": "O", "rpt": "NR"},
-    "evt_detail_chksm": {"name": "checksum", "oblg": "O", "rpt": "NR"},
-    "evt_detail_calc_chksm": {"name": "calculatedChecksum", "oblg": "O", "rpt": "NR"},
+    "evt_detail_msgDgst": {"name": "messageDigest", "oblg": "O", "rpt": "NR"},
+    "evt_detail_calc_msgDgst": {"name": "calculatedMessageDigest", "oblg": "O", "rpt": "NR"},
 
     "evt_detail": {"name": "eventDetail", "oblg": "O", "rpt": "NR"},
 
