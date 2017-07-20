@@ -13,7 +13,7 @@
     "archival_info_label": "archivalInfo",
     
     "admn_entity": {"name": "admin", "oblg": "M", "rpt": "NR"},
-    "arrange_info": {"name": "arrange", "oblg": "O", "rpt": "NR"},
+    "arrangement": {"name": "arrangement", "oblg": "O", "rpt": "NR"},
     "serial_nbr": {"name": "serialNo", "oblg": "M", "rpt": "NR"},
 
     "pres_entity": {"name": "premis", "oblg": "M", "rpt": "NR"},

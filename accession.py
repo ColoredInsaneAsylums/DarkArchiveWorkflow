@@ -125,8 +125,8 @@ EVT_DTL_FILENAME_CHNG = PYTHON_VER_STR + "; os.rename"
 UNIQUE_ID_ALGO = "UUID v4"
 UNIQUE_ID_METHOD = "uuid.uuid4()"
 
-ARRANGE_INFO_MARKER = "arrange:"
-ARRANGE_INFO_LABEL = "arrangeInfo"
+ARRANGEMENT_INFO_MARKER = "arrange:"
+ARRANGEMENT_INFO_LABEL = "arrangementInfo"
 
 # FUNCTION DEFINITIONS 
 
@@ -287,19 +287,19 @@ def initMetadataRecord(initParams):
 
     # Create the ADMIN entity here:
     mdr[labels.admn_entity.name] = {}
-    mdr[labels.admn_entity.name][labels.arrange_info.name] = {}
+    mdr[labels.admn_entity.name][labels.arrangement.name] = {}
 
-    # Remove empty fields from the Arrange info dictionary
-    arrangeInfoFields = []
-    for key, value in iter(initParams[ARRANGE_INFO_LABEL].items()):
+    # Remove empty fields from the Arrangement dictionary
+    arrangementFields = []
+    for key, value in iter(initParams[ARRANGEMENT_INFO_LABEL].items()):
         if value == "":
-            arrangeInfoFields.append(key)
+            arrangementFields.append(key)
 
-    for key in arrangeInfoFields:
-        initParams[ARRANGE_INFO_LABEL].pop(key)
+    for key in arrangementFields:
+        initParams[ARRANGEMENT_INFO_LABEL].pop(key)
 
-    mdr[labels.admn_entity.name][labels.arrange_info.name].update(initParams[ARRANGE_INFO_LABEL])
-    mdr[labels.admn_entity.name][labels.arrange_info.name][labels.serial_nbr.name] = MD_INIT_STRING
+    mdr[labels.admn_entity.name][labels.arrangement.name].update(initParams[ARRANGEMENT_INFO_LABEL])
+    mdr[labels.admn_entity.name][labels.arrangement.name][labels.serial_nbr.name] = MD_INIT_STRING
 
     # Create the PREMIS (or preservation) entity here:
     mdr[labels.pres_entity.name] = {}
@@ -512,7 +512,7 @@ def addAccessionEvent(mdr):
     return mdr
 
 def updateSerialNumber(mdr, serialNbr):
-    mdr[labels.admn_entity.name][labels.arrange_info.name][labels.serial_nbr.name] = serialNbr
+    mdr[labels.admn_entity.name][labels.arrangement.name][labels.serial_nbr.name] = serialNbr
     return mdr
 
 
@@ -579,7 +579,7 @@ def isHeaderValid(hdr):
         return False
 
 
-def transferFiles(src, dst, arrangeInfo):
+def transferFiles(src, dst, arrangementInfo):
     """transferFiles(): Carries out the actual transfer of files.
     
     Arguments: 
@@ -654,7 +654,7 @@ def transferFiles(src, dst, arrangeInfo):
             recordParams["fileSize"] = os.path.getsize(fileName)
             recordParams["fmtName"] = getFileFormatName(srcFileName)
             recordParams["fmtVer"] = getFileFormatVersion(srcFileName)
-            recordParams[ARRANGE_INFO_LABEL] = arrangeInfo
+            recordParams[ARRANGEMENT_INFO_LABEL] = arrangementInfo
             metadataRecord = initMetadataRecord(recordParams)
 
             # Extract the unique id from the just-initialized record
@@ -830,14 +830,14 @@ if batchMode == True:  # Batch mode. Read and validate CSV file.
 
 
     # Extract Arrange info from header row
-    numArrangeInfoCols = 0
-    arrangeInfoTags = {}
+    numArrangementInfoCols = 0
+    arrangementInfoTags = {}
     for col in firstRow:
-        if col.startswith(ARRANGE_INFO_MARKER):
-            numArrangeInfoCols += 1
-            arrangeInfoTags[numArrangeInfoCols] = col.split(':')[-1]
+        if col.startswith(ARRANGEMENT_INFO_MARKER):
+            numArrangementInfoCols += 1
+            arrangementInfoTags[numArrangementInfoCols] = col.split(':')[-1]
 
-    minNumCols += numArrangeInfoCols
+    minNumCols += numArrangementInfoCols
     errorList.append(firstRow + ["Comments"])
     # This for loop reads and checks the format (i.e., presence of at least two
     # columns per row) of the CSV file, and populates 'transferList' which will 
@@ -889,12 +889,12 @@ for row in transferList:
     src = row[0]
     dst = row[1]
 
-    arrangeInfo = {}
+    arrangementInfo = {}
 
-    for arrangeId in range(1, numArrangeInfoCols + 1):
-        arrangeInfo[arrangeInfoTags[arrangeId]] = row[arrangeId + 1]
+    for arrangementId in range(1, numArrangementInfoCols + 1):
+        arrangementInfo[arrangementInfoTags[arrangementId]] = row[arrangementId + 1]
 
-    print_info("Arrange Info Data: {}".format(arrangeInfo))
+    print_info("Arrangement Info Data: {}".format(arrangementInfo))
 
     # Check if the source directory exists
     if os.path.isdir(src) != True:  # Source directory doesn't exist.
@@ -905,7 +905,7 @@ Skipping to next transfer.".format(src))
         errorList.append(row + ["Source does not exist"])
         continue
 
-    transferStatus = transferFiles(src, dst, arrangeInfo)
+    transferStatus = transferFiles(src, dst, arrangementInfo)
     
     if transferStatus['status'] != True:
         # Something bad happened during this particular transfer.
