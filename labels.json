@@ -49,7 +49,7 @@
     "evt_detail_mthd": {"name": "method", "oblg": "O", "rpt": "NR"},
     "evt_detail_algo": {"name": "algorithm", "oblg": "O", "rpt": "NR"},
     "evt_detail_proglang": {"name": "programmingLanguage", "oblg": "O", "rpt": "NR"},
-    "evt_detail_id": {"name": "id", "oblg": "O", "rpt": "NR"},
+    "evt_detail_idAssgn": {"name": "idAssigned", "oblg": "O", "rpt": "NR"},
     "evt_detail_src": {"name": "source", "oblg": "O", "rpt": "NR"},
     "evt_detail_dst": {"name": "destination", "oblg": "O", "rpt": "NR"},
     "evt_detail_msgDgst": {"name": "messageDigest", "oblg": "O", "rpt": "NR"},

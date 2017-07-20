@@ -340,7 +340,7 @@ def initMetadataRecord(initParams):
     eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail_ext.name][labels.evt_detail_algo.name] = UNIQUE_ID_ALGO
     eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail_ext.name][labels.evt_detail_proglang.name] = PYTHON_VER_STR
     eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail_ext.name][labels.evt_detail_mthd.name] = UNIQUE_ID_METHOD
-    eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail_ext.name][labels.evt_detail_id.name] = uniqueId
+    eventDetailRecord[labels.evt_detail_info.name][labels.evt_detail_ext.name][labels.evt_detail_idAssgn.name] = uniqueId
 
     eventRecord[labels.evt_entity.name][labels.evt_detail_parent.name].append(eventDetailRecord)
 
