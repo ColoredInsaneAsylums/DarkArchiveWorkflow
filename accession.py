@@ -549,17 +549,17 @@ def getUniqueID():
     return str(uuid4())
 
 
-def getHighestSerialNo(dst):
-    queryField = labels.preservation_info_label + "." + labels.destination_directory
-    serialNoLabel = labels.preservation_info_label + "." + labels.serial_nbr.name
-    records = dbHandle[dbCollection].find({queryField: dst}, {"_id": 0, serialNoLabel: 1})
+def getHighestSerialNo(dirName):
+    queryField = ".".join([labels.pres_entity.name, labels.obj_entity.name, labels.obj_orig_name.name])
+    serialNoLabel = ".".join([labels.admn_entity.name, labels.arrangement.name, labels.serial_nbr.name])
+    records = dbHandle[dbCollection].find({queryField: {"$regex": dirName}}, {"_id": 0, serialNoLabel: 1})
     records = [record for record in records]
 
     if len(records) == 0:
         return 1
     else:
-        serialNos = [int(record[labels.preservation_info_label][labels.serial_nbr]) for record in records]
-        return max(serialNos) + 1
+        serialNos = [int(record[labels.admn_entity.name][labels.arrangement.name][labels.serial_nbr.name]) for record in records]
+        return max(serialNos)
 
 
 def getFileFormatName(fileName):
@@ -620,10 +620,12 @@ def transferFiles(src, dst, arrangementInfo):
             errorList.append(row + [str(osError)])
             exit(ERROR_CANNOT_CREATE_DESTINATION_DIRECTORY)
 
-        fileSerialNo = 1  # Initialize the serial number to 1, since this
+        prevHighestSerialNo = 0  # Initialize the serial number to 1, since this
                           # destination directory has just been created.
     else:
-        fileSerialNo = getHighestSerialNo(dstDirectory)
+        prevHighestSerialNo = getHighestSerialNo(srcDirectory)
+
+    print_info("Previous highest file serial number: {}".format(prevHighestSerialNo))
 
     try:
         # Create a list of files with the given extension within the src 
@@ -631,8 +633,8 @@ def transferFiles(src, dst, arrangementInfo):
         fileList = sorted(glob.glob(os.path.join(src, "*." + ext)))
         totalNumFiles = len(fileList)
         numFilesTransferred = 0  # Keeps track of number of files successfully
-                                 # transferred.
-        
+                                 # transferred in the current run.
+
         if totalNumFiles == 0:  # That no file with the extension ext was 
                                 # found is an 'anomalous' condition and should
                                 # be treated as an unsuccessful transfer just
@@ -642,9 +644,10 @@ def transferFiles(src, dst, arrangementInfo):
             print_error("No files found with extension '{}'!".format(ext))
             returnData['comment'] = "No files found with extension '{}'!".format(ext)
             return returnData
-            
+
+        currentSerialNo = prevHighestSerialNo + 1
         # Loop over all files with the extension ext
-        for fileName in fileList[fileSerialNo - 1 :]:
+        for fileName in fileList[prevHighestSerialNo:]:
             srcFileName = os.path.basename(fileName)
             srcFileExt = srcFileName.split('.')[-1]
 
@@ -719,7 +722,7 @@ def transferFiles(src, dst, arrangementInfo):
             else:
                 metadataRecord = addFixityCheckEvent(metadataRecord, True, dstChecksum)
 
-                metadataRecord = updateSerialNumber(metadataRecord, fileSerialNo)
+                metadataRecord = updateSerialNumber(metadataRecord, currentSerialNo)
 
                 # Insert the record into the DB first, and THEN copy/move the file.
                 dbRetValue = insertRecordInDB(metadataRecord)
@@ -740,8 +743,7 @@ def transferFiles(src, dst, arrangementInfo):
 
                 # Increment the file serial number for the next transfer
                 # and the corresponding DB record
-                fileSerialNo += 1
-
+                currentSerialNo += 1
 
             numFilesTransferred += 1
 
