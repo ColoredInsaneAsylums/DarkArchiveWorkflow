@@ -127,6 +127,7 @@ UNIQUE_ID_METHOD = "uuid.uuid4()"
 
 ARRANGEMENT_INFO_MARKER = "arrange:"
 ARRANGEMENT_INFO_LABEL = "arrangementInfo"
+ARRANGEMENT_INFO_LABEL_SUFFIX = "Label"
 
 # FUNCTION DEFINITIONS 
 
@@ -837,7 +838,7 @@ if batchMode == True:  # Batch mode. Read and validate CSV file.
     for col in firstRow:
         if col.startswith(ARRANGEMENT_INFO_MARKER):
             numArrangementInfoCols += 1
-            arrangementInfoTags[numArrangementInfoCols] = col.split(':')[-1]
+            arrangementInfoTags[numArrangementInfoCols] = col.split(':')[-1] + ARRANGEMENT_INFO_LABEL_SUFFIX
 
     minNumCols += numArrangementInfoCols
     errorList.append(firstRow + ["Comments"])
