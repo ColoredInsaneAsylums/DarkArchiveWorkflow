@@ -1,17 +1,5 @@
 
-{
-    "preservation_info_label": "preservationInfo",
-    "type_of_event_label": "eventType",
-    "source_directory": "sourceDirName",
-    "source_filename": "sourceFileName",
-    "destination_directory": "destinationDirName",
-    "destination_filename": "destinationFileName",
-    "file_transfer_timestamp": "timestamp",
-    "checksum_value": "checksum",
-    "checksum_algorithm": "checksumAlgo",
-    "checksum_timestamp": "timestamp",
-    "archival_info_label": "archivalInfo",
-    
+{   
     "admn_entity": {"name": "admin", "oblg": "M", "rpt": "NR"},
     "arrangement": {"name": "arrangement", "oblg": "O", "rpt": "NR"},
     "serial_nbr": {"name": "serialNo", "oblg": "M", "rpt": "NR"},
