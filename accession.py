@@ -36,6 +36,160 @@
 
 from globalvars import *
 
+def main():
+    global minNumCols, labels, vocab, dbHandle, dbCollection
+
+    argParser = defineCommandLineOptions()
+    parseCommandLineArgs(argParser)
+
+    print_info("Extension: {}".format(ext))
+
+    if move == True:
+        print_info("'move' option selected\nCAUTION: Files will be moved rather \
+    than copied")
+
+    print_info("quiet mode: ", quietMode)
+
+    # POPULATE LIST OF SOURCE-DESTINATION PAIRS
+    if batchMode == True:  # Batch mode. Read and validate CSV file.
+        # Read CSV file contents into transferList.
+        try:
+            # Open the CSV file in read-only mode.
+            csvFileHandle = open (csvFile, "r")
+        except IOError as ioErrorCsvRead:
+            print_error(ioErrorCsvRead)
+            print_error("Could not open CSV file '{}'".format(csvFile))
+            exit(ERROR_CANNOT_OPEN_CSV_FILE)
+
+        # CSV file successfully opened.
+        csvReader = csv.reader(csvFileHandle)  # Create an iterable object from the
+                                            # CSV file using csv.reader().
+
+        # Extract the first row to check if it is a header.
+        firstRow = next(csvReader, None)
+
+        if firstRow == None:  # This also serves as a check for an empty CSV file
+            print("The header row is invalid")
+            exit(ERROR_INVALID_HEADER_ROW)
+
+        print("Checking the header row. Header: {}".format(firstRow))
+
+        if isHeaderValid(firstRow) == False:
+            print("The header row is invalid")
+            exit(ERROR_INVALID_HEADER_ROW)
+
+
+        # Extract Arrange info from header row
+        numArrangementInfoCols = 0
+        arrangementInfoTags = {}
+        for col in firstRow:
+            if col.startswith(ARRANGEMENT_INFO_MARKER):
+                numArrangementInfoCols += 1
+                arrangementInfoTags[numArrangementInfoCols] = col.split(':')[-1] + ARRANGEMENT_INFO_LABEL_SUFFIX
+
+        minNumCols += numArrangementInfoCols
+        errorList.append(firstRow + ["Comments"])
+        # This for loop reads and checks the format (i.e., presence of at least two
+        # columns per row) of the CSV file, and populates 'transferList' which will
+        # be used for the actual file transfers.
+        #
+        # FORMAT RULES/ASSUMPTIONS for the CSV file:
+        #   1. The FIRST column specifies SOURCE path
+        #   2. The SECOND column specifies DESTINATION path
+        #   3. The remaining columns must be named like "arrange:<Arrange Info Field/Tag>",
+        #      e.g., "arrange:series", "ead:sub-series", etc.
+        rowNum = 1
+        for row in csvReader:
+            if len(row) < minNumCols:  # Check if the row has AT LEAST minNumCols elements.
+                print_error("Row number {} in {} is not a valid input. This row will not be processed.".format(rowNum, csvFile))
+                emptyStrings = ["" for i in range(0, minNumCols - len(row) - 1)]  # To align the error message to be under "Comments"
+                errorList.append(row + emptyStrings + ["Not a valid input"])
+            else:
+                transferList.append(row)
+            rowNum += 1
+
+        csvFileHandle.close()  # Close the CSV file as it will not be needed
+                            # from this point on.
+
+    print_info("Number of directories to transfer: {}".format(len(transferList)))
+
+    '''
+    for row in transferList:
+        print_info(row)
+    '''
+
+    # READ-IN THE LABEL DICTIONARY
+    labels = readLabelDictionary()
+    print_info("The following labels will be used for labeling metadata items in the database records:")
+    #for key in labels:
+        #print_info(key, ":", labels[key])
+    print_info(labels)
+
+    # READ-IN THE CONTROLLED VOCABULARY
+    vocab = readControlledVocabulary()
+
+    # CREATE DATABASE CONNECTION
+    dbParams = init_db()  # TODO: there needs to be a check to determine if the 
+                        # database connection was successful or not.
+    dbHandle = dbParams["handle"]
+    dbCollection = dbParams["collection_name"]
+
+    # PROCESS ALL TRANSFERS
+    for row in transferList:
+        src = row[0]
+        dst = row[1]
+
+        arrangementInfo = {}
+
+        for arrangementId in range(1, numArrangementInfoCols + 1):
+            arrangementInfo[arrangementInfoTags[arrangementId]] = row[arrangementId + 1]
+
+        print_info("Arrangement Info Data: {}".format(arrangementInfo))
+
+        # Check if the source directory exists
+        if os.path.isdir(src) != True:  # Source directory doesn't exist.
+                                        # Add row to errorList, and skip to next
+                                        # row
+            print_info("The source directory '{}' does not exist. \
+    Skipping to next transfer.".format(src))
+            errorList.append(row + ["Source does not exist"])
+            continue
+
+        transferStatus = transferFiles(src, dst, arrangementInfo)
+
+        if transferStatus['status'] != True:
+            # Something bad happened during this particular transfer.
+            # Add this row to the list errorList to keep a record of it.
+            # Also append diagnostic information about why the transfer was not
+            # successful.
+            #row.append(transferStatus['comment'])
+            errorList.append(row + [transferStatus['comment']])
+
+    # WRITE ALL ROWS THAT COULD NOT BE PROCESSED TO A CSV FILE
+    if len(errorList) > 1:  # Because at least the header row will always be there!
+        errorsCSVFileName = ("transfer_errors_" + strftime("%Y-%m-%d_%H%M%S", 
+                                                        localtime(time()))
+                            + ".csv")
+
+        try:
+            errorsCSVFileHandle = open(errorsCSVFileName, 'w')
+        except IOError as ioErrorCsvWrite:
+            print_error(ioErrorCsvWrite)
+            print_error("Could not write CSV file for errors encountered during \
+    transfers")
+            exit (ERROR_CANNOT_WRITE_CSV_FILE)
+
+        csvWriter = csv.writer(errorsCSVFileHandle, delimiter=',', quotechar='"',
+                            lineterminator='\n')
+
+        for row in errorList:
+            csvWriter.writerow(row)
+
+        errorsCSVFileHandle.close()
+        print_error("Not all transfers were successful. A record of rows for which \
+    errors were encountered has been written to the following file: \
+    {}".format(errorsCSVFileName))
+
 # FUNCTION DEFINITIONS 
 
 def print_info(*args):
@@ -683,6 +837,7 @@ def defineCommandLineOptions():
     return argParser
 
 def parseCommandLineArgs(argParser):
+    global ext, quietMode, move, batchMode, csvFile
     args = argParser.parse_args(sys.argv[1:])
 
     if len(sys.argv) < 2:
@@ -707,154 +862,5 @@ def parseCommandLineArgs(argParser):
             exit(ERROR_INVALID_ARGUMENT_STRING)
 
 
-# BEGIN MAIN PROCESSING
-argParser = defineCommandLineOptions()
-parseCommandLineArgs(argParser)
-
-print_info("Extension: {}".format(ext))
-
-if move == True:
-    print_info("'move' option selected\nCAUTION: Files will be moved rather \
-than copied")
-
-print_info("quiet mode: ", quietMode)
-
-# POPULATE LIST OF SOURCE-DESTINATION PAIRS
-if batchMode == True:  # Batch mode. Read and validate CSV file.
-    # Read CSV file contents into transferList.
-    try:
-        # Open the CSV file in read-only mode.
-        csvFileHandle = open (csvFile, "r")
-    except IOError as ioErrorCsvRead:
-        print_error(ioErrorCsvRead)
-        print_error("Could not open CSV file '{}'".format(csvFile))
-        exit(ERROR_CANNOT_OPEN_CSV_FILE)
-    
-    # CSV file successfully opened.
-    csvReader = csv.reader(csvFileHandle)  # Create an iterable object from the
-                                        # CSV file using csv.reader().
-    
-    # Extract the first row to check if it is a header.
-    firstRow = next(csvReader, None)
-
-    if firstRow == None:  # This also serves as a check for an empty CSV file
-        print("The header row is invalid")
-        exit(ERROR_INVALID_HEADER_ROW)
-
-    print("Checking the header row. Header: {}".format(firstRow))
-
-    if isHeaderValid(firstRow) == False:
-        print("The header row is invalid")
-        exit(ERROR_INVALID_HEADER_ROW)
-
-
-    # Extract Arrange info from header row
-    numArrangementInfoCols = 0
-    arrangementInfoTags = {}
-    for col in firstRow:
-        if col.startswith(ARRANGEMENT_INFO_MARKER):
-            numArrangementInfoCols += 1
-            arrangementInfoTags[numArrangementInfoCols] = col.split(':')[-1] + ARRANGEMENT_INFO_LABEL_SUFFIX
-
-    minNumCols += numArrangementInfoCols
-    errorList.append(firstRow + ["Comments"])
-    # This for loop reads and checks the format (i.e., presence of at least two
-    # columns per row) of the CSV file, and populates 'transferList' which will 
-    # be used for the actual file transfers.
-    # 
-    # FORMAT RULES/ASSUMPTIONS for the CSV file:
-    #   1. The FIRST column specifies SOURCE path
-    #   2. The SECOND column specifies DESTINATION path
-    #   3. The remaining columns must be named like "arrange:<Arrange Info Field/Tag>", 
-    #      e.g., "arrange:series", "ead:sub-series", etc.
-    rowNum = 1
-    for row in csvReader:
-        if len(row) < minNumCols:  # Check if the row has AT LEAST minNumCols elements.
-            print_error("Row number {} in {} is not a valid input. This row will not be processed.".format(rowNum, csvFile))
-            emptyStrings = ["" for i in range(0, minNumCols - len(row) - 1)]  # To align the error message to be under "Comments"
-            errorList.append(row + emptyStrings + ["Not a valid input"])
-        else: 
-            transferList.append(row)
-        rowNum += 1
-
-    csvFileHandle.close()  # Close the CSV file as it will not be needed
-                        # from this point on.
-
-print_info("Number of directories to transfer: {}".format(len(transferList)))
-
-'''
-for row in transferList:
-    print_info(row)
-'''
-
-# READ-IN THE LABEL DICTIONARY
-labels = readLabelDictionary()
-print_info("The following labels will be used for labeling metadata items in the database records:")
-#for key in labels:
-    #print_info(key, ":", labels[key])
-print_info(labels)
-
-# READ-IN THE CONTROLLED VOCABULARY
-vocab = readControlledVocabulary()
-
-# CREATE DATABASE CONNECTION
-dbParams = init_db()  # TODO: there needs to be a check to determine if the 
-                      # database connection was successful or not.
-dbHandle = dbParams["handle"]
-dbCollection = dbParams["collection_name"]
-
-# PROCESS ALL TRANSFERS
-for row in transferList:
-    src = row[0]
-    dst = row[1]
-
-    arrangementInfo = {}
-
-    for arrangementId in range(1, numArrangementInfoCols + 1):
-        arrangementInfo[arrangementInfoTags[arrangementId]] = row[arrangementId + 1]
-
-    print_info("Arrangement Info Data: {}".format(arrangementInfo))
-
-    # Check if the source directory exists
-    if os.path.isdir(src) != True:  # Source directory doesn't exist.
-                                    # Add row to errorList, and skip to next
-                                    # row
-        print_info("The source directory '{}' does not exist. \
-Skipping to next transfer.".format(src))
-        errorList.append(row + ["Source does not exist"])
-        continue
-
-    transferStatus = transferFiles(src, dst, arrangementInfo)
-    
-    if transferStatus['status'] != True:
-        # Something bad happened during this particular transfer.
-        # Add this row to the list errorList to keep a record of it.
-        # Also append diagnostic information about why the transfer was not
-        # successful.
-        #row.append(transferStatus['comment'])
-        errorList.append(row + [transferStatus['comment']])
-
-# WRITE ALL ROWS THAT COULD NOT BE PROCESSED TO A CSV FILE
-if len(errorList) > 1:  # Because at least the header row will always be there!
-    errorsCSVFileName = ("transfer_errors_" + strftime("%Y-%m-%d_%H%M%S", 
-                                                    localtime(time()))
-                        + ".csv")
-    
-    try:
-        errorsCSVFileHandle = open(errorsCSVFileName, 'w')
-    except IOError as ioErrorCsvWrite:
-        print_error(ioErrorCsvWrite)
-        print_error("Could not write CSV file for errors encountered during \
-transfers")
-        exit (ERROR_CANNOT_WRITE_CSV_FILE)
-        
-    csvWriter = csv.writer(errorsCSVFileHandle, delimiter=',', quotechar='"',
-                        lineterminator='\n')
-    
-    for row in errorList:
-        csvWriter.writerow(row)
-        
-    errorsCSVFileHandle.close()
-    print_error("Not all transfers were successful. A record of rows for which \
-errors were encountered has been written to the following file: \
-{}".format(errorsCSVFileName))
+if __name__ == "__main__":
+    main()
