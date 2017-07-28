@@ -671,37 +671,46 @@ def transferFiles(src, dst, arrangementInfo):
 
 
 
-#PARSE AND VALIDATE COMMAND-LINE OPTIONS
-argParser = argparse.ArgumentParser(description="Migrate Files for Preservation")
-argParser.add_argument('-e', '--extension', nargs=1, default='*', help='Specify file EXTENSION for files that need to be migrated.')
-#argParser.add_argument('srcDstPair', nargs='*', metavar='SRC DST', help='Migrate files from SRC to DST. DST will be created if it does not exist. These arguments will be ignored if the -f option is specified.')
-argParser.add_argument('-f', '--file', nargs=1, default=False, metavar='CSVPATH', help='CSVPATH is the path to the CSV file to be used with the -f option.')
-argParser.add_argument('-q', '--quiet', action='store_true', help='Enable this option to suppress all logging, except critical error messages.')
-argParser.add_argument('-m', '--move', action='store_true', help='Enable this option to move the files instead of copying them.')
+def defineCommandLineOptions():
+    #PARSE AND VALIDATE COMMAND-LINE OPTIONS
+    argParser = argparse.ArgumentParser(description="Migrate Files for Preservation")
+    argParser.add_argument('-e', '--extension', nargs=1, default='*', help='Specify file EXTENSION for files that need to be migrated.')
+    #argParser.add_argument('srcDstPair', nargs='*', metavar='SRC DST', help='Migrate files from SRC to DST. DST will be created if it does not exist. These arguments will be ignored if the -f option is specified.')
+    argParser.add_argument('-f', '--file', nargs=1, default=False, metavar='CSVPATH', help='CSVPATH is the path to the CSV file to be used with the -f option.')
+    argParser.add_argument('-q', '--quiet', action='store_true', help='Enable this option to suppress all logging, except critical error messages.')
+    argParser.add_argument('-m', '--move', action='store_true', help='Enable this option to move the files instead of copying them.')
 
-args = argParser.parse_args()
+    return argParser
 
-if len(sys.argv) < 2:
-    argParser.print_help()
-    exit(ERROR_INVALID_ARGUMENT_STRING)
+def parseCommandLineArgs(argParser):
+    args = argParser.parse_args(sys.argv[1:])
 
-ext = args.extension[0]
-quietMode = args.quiet
-move = args.move
-
-if args.file:
-    batchMode = True
-    csvFile = args.file[0]
-else:
-    batchMode = False
-    if len(args.srcDstPair) != 2:
-        src = args.srcDstPair[0]
-        dst = args.srcDstPair[1]
-        transferList.append([src, dst])
-    else:
+    if len(sys.argv) < 2:
         argParser.print_help()
         exit(ERROR_INVALID_ARGUMENT_STRING)
-   
+
+    ext = args.extension[0]
+    quietMode = args.quiet
+    move = args.move
+
+    if args.file:
+        batchMode = True
+        csvFile = args.file[0]
+    else:
+        batchMode = False
+        if len(args.srcDstPair) != 2:
+            src = args.srcDstPair[0]
+            dst = args.srcDstPair[1]
+            transferList.append([src, dst])
+        else:
+            argParser.print_help()
+            exit(ERROR_INVALID_ARGUMENT_STRING)
+
+
+# BEGIN MAIN PROCESSING
+argParser = defineCommandLineOptions()
+parseCommandLineArgs(argParser)
+
 print_info("Extension: {}".format(ext))
 
 if move == True:
