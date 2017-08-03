@@ -39,21 +39,15 @@ import sys
 import os
 import glob
 import shutil
-import hashlib
-from pymongo import MongoClient
-from uuid import uuid4
-from datetime import datetime
-from time import localtime, time, strftime
-import json
-import argparse
-from collections import namedtuple
 
 import globalvars
 import errorcodes
+from utilfunctions import *
+from dbfunctions import *
 
 def main():
     argParser = defineCommandLineOptions()
-    parseCommandLineArgs(argParser)
+    parseCommandLineArgs(argParser, sys.argv[1:])
 
     print_info("Extension: {}".format(globalvars.ext))
 
@@ -82,13 +76,13 @@ def main():
         firstRow = next(csvReader, None)
 
         if firstRow == None:  # This also serves as a check for an empty CSV file
-            print("The header row is invalid")
+            print_error("The header row is invalid")
             exit(errorcodes.ERROR_INVALID_HEADER_ROW)
 
-        print("Checking the header row. Header: {}".format(firstRow))
+        print_info("Checking the header row. Header: {}".format(firstRow))
 
         if isHeaderValid(firstRow) == False:
-            print("The header row is invalid")
+            print_error("The header row is invalid")
             exit(errorcodes.ERROR_INVALID_HEADER_ROW)
 
 
@@ -200,136 +194,6 @@ def main():
 
 # FUNCTION DEFINITIONS 
 
-def print_info(*args):
-    """print_info(): Prints informational messages on stdout
-
-    Arguments:
-        [1] Variable length list of arguments
-    
-    If quiet mode is enabled, this function does nothing. If quiet mode is 
-    not enabled (default) then the arguments are passed one by one to the 
-    built-in print() function.
-    """
-    if globalvars.quietMode == False:
-        print(getCurrentEDTFTimestamp() + ": ", end='')
-        for arg in args:
-            print(arg, end='')
-        print()
-
-
-def print_error(*args):
-    """print_error():
-
-    Arguments:
-        [1]: Variable length list of arguments
-
-    Forces print output to stderr.
-    """
-    for arg in args:
-        print(arg, end='', file=sys.stderr)
-
-
-def getFileChecksum(filePath):
-    return hashlib.md5(open(filePath, 'rb').read()).hexdigest() # TODO: include this inline in the caller. remove function.
-
-
-def getCurrentEDTFTimestamp():
-    ts = datetime.now().isoformat(sep='T').split('.')[0]
-    tz = strftime('%z', localtime())
-    tz = tz[:3] + ":" + tz[3:]
-    return ts + tz
-
-
-def init_db():
-    """init_db():
-
-    Arguments:
-        none
-
-    Reads the DB Configuration file, creates a connection to the database, 
-    and returns a handle to the connected database
-    """
-    
-    try:
-        dbConfigJson = open("dbconf.json", "r").read()
-    except IOError as exception:
-        print_error(exception)
-        print_error("\nCould not read the DB Configuration file 'dbconf.json'")
-        quit(errorcodes.ERROR_CANNOT_READ_DBCONF_FILE)
-
-    dbConfig = json.loads(dbConfigJson)
-    dbAddr = dbConfig['dbaddress']
-    dbUser = dbConfig['dbuser']
-    #dbPass = urllib.quote_plus(dbConfig['dbpassword'])
-    dbPass = dbConfig['dbpassword']
-    dbName = dbConfig['dbname']
-    globalvars.dbCollection = dbConfig['dbcollection']
-
-    try:
-        handle = MongoClient(dbAddr)[dbName]
-    except pymongo.errors.ConnectionFailure as ExceptionConnFailure:
-        print_error(ExceptionConnFailure)
-        exit(errorcodes.ERROR_CANNOT_CONNECT_TO_DB)
-
-    try:
-        handle.authenticate(dbUser, dbPass)
-    except pymongo.errors.PyMongoError as ExceptionPyMongoError:
-        print_error(ExceptionPyMongoError)
-        exit(errorcodes.ERROR_CANNOT_AUTHENTICATE_DB_USER)
-
-    dbParamsDict = dict()
-    dbParamsDict["handle"] = handle
-    dbParamsDict["collection_name"] = globalvars.dbCollection
-
-    return dbParamsDict
-
-
-def readLabelDictionary():
-    """readLabelDictionary()
-
-    Arguments:
-        None
-
-    This function reads the JSON file containing entity labels to populate the label dictionary.
-    This label dictionary will be used to assign labels to metadata items to be 
-    recorded into a database for each transfer.
-    """
-
-    try:
-        jsonObject = open(globalvars.labelsFileName, "r").read()
-    except IOError as jsonReadException:
-        print_error(jsonReadException)
-        print_error("\nCould not read the labels file '{}'".format(globalvars.labelsFileName))
-        quit(errorcodes.ERROR_CANNOT_READ_LABELS_FILE)
-
-    try:
-        labels = json.loads(jsonObject, object_hook= lambda d: namedtuple('Labels', d.keys())(*d.values()))
-    except json.JSONDecodeError as jsonDecodeError:
-        print_error(jsonDecodeError)
-        print_error("The file '{}' is not a valid JSON file. Please check the file for formatting errors.".format(globalvars.labelsFileName))
-        exit(errorcodes.ERROR_INVALID_JSON_FILE)
-
-    return labels
-
-
-def readControlledVocabulary():
-    try:
-        jsonObject = open(globalvars.vocabFileName, "r").read()
-    except IOError as jsonReadException:
-        print_error(jsonReadException)
-        print_error("\nCould not read the labels file '{}'".format(globalvars.vocabFileName))
-        quit(errorcodes.ERROR_CANNOT_READ_VOCAB_FILE)
-
-    try:
-        jsonVocab = json.loads(jsonObject, object_hook= lambda d: namedtuple('Vocab', d.keys())(*d.values()))
-    except json.JSONDecodeError as jsonDecodeError:
-        print_error(jsonDecodeError)
-        print_error("The file '{}' is not a valid JSON file. Please check the file for formatting errors.".format(globalvars.vocabFileName))
-        exit(errorcodes.ERROR_INVALID_JSON_FILE)
-
-    return jsonVocab
-
-
 def getEventDetails():
     return ""  # TODO: temporary, needs more work!!
 
@@ -422,7 +286,7 @@ def initMetadataRecord(initParams):
     eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name][globalvars.labels.evt_lnk_agnt_id_val.name] = globalvars.LNK_AGNT_ID_VAL
 
     mdr[globalvars.labels.pres_entity.name][globalvars.labels.evt_parent_entity.name].append(eventRecord)
-    print("The following record has been initialized: {}".format(mdr))
+    print_info("The following record has been initialized: {}".format(mdr))
 
     return mdr
 
@@ -574,69 +438,6 @@ def updateSerialNumber(mdr, serialNbr):
     return mdr
 
 
-def insertRecordInDB(mdr):
-    """insertRecordInDB
-
-    Arguments:
-        mdr: the metadata record to be inserted
-
-    This function creates a database entry pertaining to the file being transferred.
-    
-    """
-    
-    mdr = addAccessionEvent(mdr)
-
-    try:
-        dbInsertResult = globalvars.dbHandle[globalvars.dbCollection].insert_one(mdr)
-    except pymongo.errors.PyMongoError as ExceptionPyMongoError:
-        print_error(ExceptionPyMongoError)
-        return(errorcodes.ERROR_CANNOT_INSERT_INTO_DB)
-    
-    return(str(dbInsertResult.inserted_id))
-
-
-def DeleteRecordFromDB(id):
-    retVal = globalvars.dbHandle[globalvars.dbCollection].delete_one({'_id': id})
-    
-    if retVal.deleted_count != 1:
-        print_error("Cannot remove record from DB")
-        exit(errorcodes.ERROR_CANNOT_REMOVE_RECORD_FROM_DB)
-
-
-def getUniqueID():
-    return str(uuid4())
-
-
-def getHighestSerialNo(dirName):
-    queryField = ".".join([globalvars.labels.pres_entity.name, globalvars.labels.obj_entity.name, globalvars.labels.obj_orig_name.name])
-    serialNoLabel = ".".join([globalvars.labels.admn_entity.name, globalvars.labels.arrangement.name, globalvars.labels.serial_nbr.name])
-    records = globalvars.dbHandle[globalvars.dbCollection].find({queryField: {"$regex": dirName}}, {"_id": 0, serialNoLabel: 1})
-    records = [record for record in records]
-
-    if len(records) == 0:
-        return 1
-    else:
-        serialNos = [int(record[globalvars.labels.admn_entity.name][globalvars.labels.arrangement.name][globalvars.labels.serial_nbr.name]) for record in records]
-        return max(serialNos)
-
-
-def getFileFormatName(fileName):
-    extension = fileName.split('.')[-1]
-    return extension.upper()
-
-
-def getFileFormatVersion(fileName):
-    extension = fileName.split('.')[-1]
-    return ""  # TODO: This is just a STAND-IN for testing. NEEDS to be changed.
-
-
-def isHeaderValid(hdr):
-    if hdr[0] == globalvars.CSV_COL_1_NAME and hdr[1] == globalvars.CSV_COL_2_NAME:
-        return True
-    else:
-        return False
-
-
 def transferFiles(src, dst, arrangementInfo):
     """transferFiles(): Carries out the actual transfer of files.
     
@@ -782,6 +583,7 @@ def transferFiles(src, dst, arrangementInfo):
 
                 metadataRecord = updateSerialNumber(metadataRecord, currentSerialNo)
 
+                metadataRecord = addAccessionEvent(metadataRecord)
                 # Insert the record into the DB first, and THEN copy/move the file.
                 dbRetValue = insertRecordInDB(metadataRecord)
 
@@ -818,42 +620,6 @@ def transferFiles(src, dst, arrangementInfo):
     commentString = "Success. {} out of {} files transferred".format(numFilesTransferred, totalNumFiles)
     returnData['comment'] = commentString
     return returnData  # Transfers were successfully completed, return True
-
-
-def defineCommandLineOptions():
-    #PARSE AND VALIDATE COMMAND-LINE OPTIONS
-    argParser = argparse.ArgumentParser(description="Migrate Files for Preservation")
-    argParser.add_argument('-e', '--extension', nargs=1, default='*', help='Specify file EXTENSION for files that need to be migrated.')
-    #argParser.add_argument('srcDstPair', nargs='*', metavar='SRC DST', help='Migrate files from SRC to DST. DST will be created if it does not exist. These arguments will be ignored if the -f option is specified.')
-    argParser.add_argument('-f', '--file', nargs=1, default=False, metavar='CSVPATH', help='CSVPATH is the path to the CSV file to be used with the -f option.')
-    argParser.add_argument('-q', '--quiet', action='store_true', help='Enable this option to suppress all logging, except critical error messages.')
-    argParser.add_argument('-m', '--move', action='store_true', help='Enable this option to move the files instead of copying them.')
-
-    return argParser
-
-def parseCommandLineArgs(argParser):
-    args = argParser.parse_args(sys.argv[1:])
-
-    if len(sys.argv) < 2:
-        argParser.print_help()
-        exit(errorcodes.ERROR_INVALID_ARGUMENT_STRING)
-
-    globalvars.ext = args.extension[0]
-    globalvars.quietMode = args.quiet
-    globalvars.move = args.move
-
-    if args.file:
-        globalvars.batchMode = True
-        globalvars.csvFile = args.file[0]
-    else:
-        globalvars.batchMode = False
-        if len(args.srcDstPair) != 2:
-            src = args.srcDstPair[0]
-            dst = args.srcDstPair[1]
-            globalvars.transferList.append([src, dst])
-        else:
-            argParser.print_help()
-            exit(errorcodes.ERROR_INVALID_ARGUMENT_STRING)
 
 
 if __name__ == "__main__":
