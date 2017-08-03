@@ -18,8 +18,8 @@ def init_db():
         dbConfigJson = open("dbconf.json", "r").read()
     except IOError as exception:
         print_error(exception)
-        print_error("\nCould not read the DB Configuration file 'dbconf.json'")
-        quit(errorcodes.ERROR_CANNOT_READ_DBCONF_FILE)
+        print_error(errorcodes.ERROR_CANNOT_READ_DBCONF_FILE["message"])
+        quit(errorcodes.ERROR_CANNOT_READ_DBCONF_FILE["code"])
 
     dbConfig = json.loads(dbConfigJson)
     dbAddr = dbConfig['dbaddress']
@@ -33,13 +33,15 @@ def init_db():
         handle = pymongo.MongoClient(dbAddr)[dbName]
     except pymongo.errors.ConnectionFailure as ExceptionConnFailure:
         print_error(ExceptionConnFailure)
-        exit(errorcodes.ERROR_CANNOT_CONNECT_TO_DB)
+        print_error(errorcodes.ERROR_CANNOT_CONNECT_TO_DB["message"])
+        exit(errorcodes.ERROR_CANNOT_CONNECT_TO_DB["code"])
 
     try:
         handle.authenticate(dbUser, dbPass)
     except pymongo.errors.PyMongoError as ExceptionPyMongoError:
         print_error(ExceptionPyMongoError)
-        exit(errorcodes.ERROR_CANNOT_AUTHENTICATE_DB_USER)
+        print_error(errorcodes.ERROR_CANNOT_AUTHENTICATE_DB_USER["message"])
+        exit(errorcodes.ERROR_CANNOT_AUTHENTICATE_DB_USER["code"])
 
     dbParamsDict = dict()
     dbParamsDict["handle"] = handle
@@ -62,7 +64,8 @@ def insertRecordInDB(mdr):
         dbInsertResult = globalvars.dbHandle[globalvars.dbCollection].insert_one(mdr)
     except pymongo.errors.PyMongoError as ExceptionPyMongoError:
         print_error(ExceptionPyMongoError)
-        return(errorcodes.ERROR_CANNOT_INSERT_INTO_DB)
+        print_error(errorcodes.ERROR_CANNOT_INSERT_INTO_DB["message"])
+        return(errorcodes.ERROR_CANNOT_INSERT_INTO_DB["code"])
     
     return(str(dbInsertResult.inserted_id))
 
@@ -71,8 +74,8 @@ def DeleteRecordFromDB(id):
     retVal = globalvars.dbHandle[globalvars.dbCollection].delete_one({'_id': id})
     
     if retVal.deleted_count != 1:
-        print_error("Cannot remove record from DB")
-        exit(errorcodes.ERROR_CANNOT_REMOVE_RECORD_FROM_DB)
+        print_error(errorcodes.ERROR_CANNOT_REMOVE_RECORD_FROM_DB["message"])
+        exit(errorcodes.ERROR_CANNOT_REMOVE_RECORD_FROM_DB["code"])
 
 
 def getHighestSerialNo(dirName):

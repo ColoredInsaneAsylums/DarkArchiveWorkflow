@@ -65,8 +65,8 @@ def main():
             csvFileHandle = open (globalvars.csvFile, "r")
         except IOError as ioErrorCsvRead:
             print_error(ioErrorCsvRead)
-            print_error("Could not open CSV file '{}'".format(globalvars.csvFile))
-            exit(errorcodes.ERROR_CANNOT_OPEN_CSV_FILE)
+            print_error(errorcodes.ERROR_CANNOT_OPEN_CSV_FILE["message"])
+            exit(errorcodes.ERROR_CANNOT_OPEN_CSV_FILE["code"])
 
         # CSV file successfully opened.
         csvReader = csv.reader(csvFileHandle)  # Create an iterable object from the
@@ -75,16 +75,10 @@ def main():
         # Extract the first row to check if it is a header.
         firstRow = next(csvReader, None)
 
-        if firstRow == None:  # This also serves as a check for an empty CSV file
-            print_error("The header row is invalid")
-            exit(errorcodes.ERROR_INVALID_HEADER_ROW)
-
         print_info("Checking the header row. Header: {}".format(firstRow))
-
-        if isHeaderValid(firstRow) == False:
-            print_error("The header row is invalid")
-            exit(errorcodes.ERROR_INVALID_HEADER_ROW)
-
+        if firstRow == None or isHeaderValid(firstRow) == False:  # This also serves as a check for an empty CSV file
+            print_error(errorcodes.ERROR_INVALID_HEADER_ROW["message"])
+            exit(errorcodes.ERROR_INVALID_HEADER_ROW["code"])
 
         # Extract Arrange info from header row
         numArrangementInfoCols = 0
@@ -177,9 +171,8 @@ def main():
             errorsCSVFileHandle = open(errorsCSVFileName, 'w')
         except IOError as ioErrorCsvWrite:
             print_error(ioErrorCsvWrite)
-            print_error("Could not write CSV file for errors encountered during \
-    transfers")
-            exit (errorcodes.ERROR_CANNOT_WRITE_CSV_FILE)
+            print_error(errorcodes.ERROR_CANNOT_WRITE_CSV_FILE["message"])
+            exit (errorcodes.ERROR_CANNOT_WRITE_CSV_FILE["code"])
 
         csvWriter = csv.writer(errorsCSVFileHandle, delimiter=',', quotechar='"',
                             lineterminator='\n')
@@ -229,9 +222,9 @@ def transferFiles(src, dst, arrangementInfo):
                               # directories required.
         except os.error as osError:
             print_error(osError)
-            print_error("cannot create destination directory {}. Skipping to next transfer.")
             globalvars.errorList.append(row + [str(osError)])
-            exit(errorcodes.ERROR_CANNOT_CREATE_DESTINATION_DIRECTORY)
+            print_error(errorcodes.ERROR_CANNOT_CREATE_DESTINATION_DIRECTORY["message"].format(dst))
+            exit(errorcodes.ERROR_CANNOT_CREATE_DESTINATION_DIRECTORY["code"])
 
         prevHighestSerialNo = 0  # Initialize the serial number to 1, since this
                           # destination directory has just been created.
@@ -336,7 +329,8 @@ def transferFiles(src, dst, arrangementInfo):
                     os.remove(dstFileUniquePath)
                 except os.error as ExceptionFileRemoval:
                     print_error(ExceptionFileRemoval)
-                    exit(errorcodes.ERROR_CANNOT_REMOVE_FILE)
+                    print_error(errorcodes.ERROR_CANNOT_REMOVE_FILE["message"])
+                    exit(errorcodes.ERROR_CANNOT_REMOVE_FILE["code"])
 
                 # Remove entry from DB if present
                 DeleteRecordFromDB(uniqueId)
@@ -367,7 +361,8 @@ def transferFiles(src, dst, arrangementInfo):
                     except os.error as ExceptionFileRemoval:
                         print_error("Cannot remove file '{}' from source '{}' after the move. Only a copy was made to the destination.".format(srcFileName, srcDirectory))
                         print_error(ExceptionFileRemoval)
-                        exit(errorcodes.ERROR_CANNOT_REMOVE_FILE)
+                        print_error(errorcodes.ERROR_CANNOT_REMOVE_FILE["message"])
+                        exit(errorcodes.ERROR_CANNOT_REMOVE_FILE["code"])
 
                 # Increment the file serial number for the next transfer
                 # and the corresponding DB record

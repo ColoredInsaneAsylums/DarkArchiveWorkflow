@@ -25,8 +25,9 @@ def parseCommandLineArgs(argParser, args):
     parsedArgs = argParser.parse_args(args)
 
     if len(args) == 0:
+        print_error(errorcodes.ERROR_INVALID_ARGUMENT_STRING["message"])
         argParser.print_help()
-        exit(errorcodes.ERROR_INVALID_ARGUMENT_STRING)
+        exit(errorcodes.ERROR_INVALID_ARGUMENT_STRING["code"])
 
     globalvars.ext = parsedArgs.extension[0]
     globalvars.quietMode = parsedArgs.quiet
@@ -42,8 +43,9 @@ def parseCommandLineArgs(argParser, args):
             dst = parsedArgs.srcDstPair[1]
             globalvars.transferList.append([src, dst])
         else:
+            print_error(errorcodes.ERROR_INVALID_ARGUMENT_STRING["message"])
             argParser.print_help()
-            exit(errorcodes.ERROR_INVALID_ARGUMENT_STRING)
+            exit(errorcodes.ERROR_INVALID_ARGUMENT_STRING["code"])
 
 
 def getCurrentEDTFTimestamp():
@@ -72,15 +74,15 @@ def readLabelDictionary():
         jsonObject = open(globalvars.labelsFileName, "r").read()
     except IOError as jsonReadException:
         print_error(jsonReadException)
-        print_error("\nCould not read the labels file '{}'".format(globalvars.labelsFileName))
-        quit(errorcodes.ERROR_CANNOT_READ_LABELS_FILE)
+        print_error(errorcodes.ERROR_CANNOT_READ_LABELS_FILE["message"])
+        quit(errorcodes.ERROR_CANNOT_READ_LABELS_FILE["code"])
 
     try:
         labels = json.loads(jsonObject, object_hook= lambda d: namedtuple('Labels', d.keys())(*d.values()))
     except json.JSONDecodeError as jsonDecodeError:
         print_error(jsonDecodeError)
-        print_error("The file '{}' is not a valid JSON file. Please check the file for formatting errors.".format(globalvars.labelsFileName))
-        exit(errorcodes.ERROR_INVALID_JSON_FILE)
+        print_error(errorcodes.ERROR_INVALID_JSON_IN_LABELS_FILE["message"])
+        exit(errorcodes.ERROR_INVALID_JSON_IN_LABELS_FILE["code"])
 
     return labels
 
@@ -90,15 +92,15 @@ def readControlledVocabulary():
         jsonObject = open(globalvars.vocabFileName, "r").read()
     except IOError as jsonReadException:
         print_error(jsonReadException)
-        print_error("\nCould not read the labels file '{}'".format(globalvars.vocabFileName))
-        quit(errorcodes.ERROR_CANNOT_READ_VOCAB_FILE)
+        print_error(errorcodes.ERROR_CANNOT_READ_VOCAB_FILE["message"])
+        quit(errorcodes.ERROR_CANNOT_READ_VOCAB_FILE["code"])
 
     try:
         jsonVocab = json.loads(jsonObject, object_hook= lambda d: namedtuple('Vocab', d.keys())(*d.values()))
     except json.JSONDecodeError as jsonDecodeError:
         print_error(jsonDecodeError)
-        print_error("The file '{}' is not a valid JSON file. Please check the file for formatting errors.".format(globalvars.vocabFileName))
-        exit(errorcodes.ERROR_INVALID_JSON_FILE)
+        print_error(errorcodes.ERROR_INVALID_JSON_IN_VOCAB_FILE["message"])
+        exit(errorcodes.ERROR_INVALID_JSON_IN_VOCAB_FILE["code"])
 
     return jsonVocab
 
