@@ -52,32 +52,31 @@ import urllib
 import argparse
 from collections import namedtuple
 
-import globalvars as g
-import errorcodes as e
-
+import globalvars
+import errorcodes
 
 def main():
     argParser = defineCommandLineOptions()
     parseCommandLineArgs(argParser)
 
-    print_info("Extension: {}".format(g.ext))
+    print_info("Extension: {}".format(globalvars.ext))
 
-    if g.move == True:
+    if globalvars.move == True:
         print_info("'move' option selected\nCAUTION: Files will be moved rather \
     than copied")
 
-    print_info("quiet mode: ", g.quietMode)
+    print_info("quiet mode: ", globalvars.quietMode)
 
     # POPULATE LIST OF SOURCE-DESTINATION PAIRS
-    if g.batchMode == True:  # Batch mode. Read and validate CSV file.
-        # Read CSV file contents into g.transferList.
+    if globalvars.batchMode == True:  # Batch mode. Read and validate CSV file.
+        # Read CSV file contents into globalvars.transferList.
         try:
             # Open the CSV file in read-only mode.
-            csvFileHandle = open (g.csvFile, "r")
+            csvFileHandle = open (globalvars.csvFile, "r")
         except IOError as ioErrorCsvRead:
             print_error(ioErrorCsvRead)
-            print_error("Could not open CSV file '{}'".format(g.csvFile))
-            exit(e.ERROR_CANNOT_OPEN_CSV_FILE)
+            print_error("Could not open CSV file '{}'".format(globalvars.csvFile))
+            exit(errorcodes.ERROR_CANNOT_OPEN_CSV_FILE)
 
         # CSV file successfully opened.
         csvReader = csv.reader(csvFileHandle)  # Create an iterable object from the
@@ -88,67 +87,67 @@ def main():
 
         if firstRow == None:  # This also serves as a check for an empty CSV file
             print("The header row is invalid")
-            exit(e.ERROR_INVALID_HEADER_ROW)
+            exit(errorcodes.ERROR_INVALID_HEADER_ROW)
 
         print("Checking the header row. Header: {}".format(firstRow))
 
         if isHeaderValid(firstRow) == False:
             print("The header row is invalid")
-            exit(e.ERROR_INVALID_HEADER_ROW)
+            exit(errorcodes.ERROR_INVALID_HEADER_ROW)
 
 
         # Extract Arrange info from header row
         numArrangementInfoCols = 0
         arrangementInfoTags = {}
         for col in firstRow:
-            if col.startswith(g.ARRANGEMENT_INFO_MARKER):
+            if col.startswith(globalvars.ARRANGEMENT_INFO_MARKER):
                 numArrangementInfoCols += 1
-                arrangementInfoTags[numArrangementInfoCols] = col.split(':')[-1] + g.ARRANGEMENT_INFO_LABEL_SUFFIX
+                arrangementInfoTags[numArrangementInfoCols] = col.split(':')[-1] + globalvars.ARRANGEMENT_INFO_LABEL_SUFFIX
 
-        g.minNumCols += numArrangementInfoCols
-        g.errorList.append(firstRow + ["Comments"])
-        # This for loop reads and checks the format (i.e., presence of at least two
-        # columns per row) of the CSV file, and populates 'g.transferList' which will
+        globalvars.minNumCols += numArrangementInfoCols
+        globalvars.errorList.append(firstRow + ["Comments"])
+        # This for loop reads and checks the format (i.errorcodes., presence of at least two
+        # columns per row) of the CSV file, and populates 'globalvars.transferList' which will
         # be used for the actual file transfers.
         #
         # FORMAT RULES/ASSUMPTIONS for the CSV file:
         #   1. The FIRST column specifies SOURCE path
         #   2. The SECOND column specifies DESTINATION path
         #   3. The remaining columns must be named like "arrange:<Arrange Info Field/Tag>",
-        #      e.g., "arrange:series", "ead:sub-series", etc.
+        #      errorcodes.globalvars., "arrange:series", "ead:sub-series", etc.
         rowNum = 1
         for row in csvReader:
-            if len(row) < g.minNumCols:  # Check if the row has AT LEAST g.minNumCols elements.
-                print_error("Row number {} in {} is not a valid input. This row will not be processed.".format(rowNum, g.csvFile))
-                emptyStrings = ["" for i in range(0, g.minNumCols - len(row) - 1)]  # To align the error message to be under "Comments"
-                g.errorList.append(row + emptyStrings + ["Not a valid input"])
+            if len(row) < globalvars.minNumCols:  # Check if the row has AT LEAST globalvars.minNumCols elements.
+                print_error("Row number {} in {} is not a valid input. This row will not be processed.".format(rowNum, globalvars.csvFile))
+                emptyStrings = ["" for i in range(0, globalvars.minNumCols - len(row) - 1)]  # To align the error message to be under "Comments"
+                globalvars.errorList.append(row + emptyStrings + ["Not a valid input"])
             else:
-                g.transferList.append(row)
+                globalvars.transferList.append(row)
             rowNum += 1
 
         csvFileHandle.close()  # Close the CSV file as it will not be needed
                             # from this point on.
 
-    print_info("Number of directories to transfer: {}".format(len(g.transferList)))
+    print_info("Number of directories to transfer: {}".format(len(globalvars.transferList)))
 
     # READ-IN THE LABEL DICTIONARY
-    g.labels = readLabelDictionary()
+    globalvars.labels = readLabelDictionary()
     print_info("The following labels will be used for labeling metadata items in the database records:")
-    #for key in g.labels:
-        #print_info(key, ":", g.labels[key])
-    print_info(g.labels)
+    #for key in globalvars.labels:
+        #print_info(key, ":", globalvars.labels[key])
+    print_info(globalvars.labels)
 
     # READ-IN THE CONTROLLED VOCABULARY
-    g.vocab = readControlledVocabulary()
+    globalvars.vocab = readControlledVocabulary()
 
     # CREATE DATABASE CONNECTION
     dbParams = init_db()  # TODO: there needs to be a check to determine if the 
                         # database connection was successful or not.
-    g.dbHandle = dbParams["handle"]
-    g.dbCollection = dbParams["collection_name"]
+    globalvars.dbHandle = dbParams["handle"]
+    globalvars.dbCollection = dbParams["collection_name"]
 
     # PROCESS ALL TRANSFERS
-    for row in g.transferList:
+    for row in globalvars.transferList:
         src = row[0]
         dst = row[1]
 
@@ -161,25 +160,25 @@ def main():
 
         # Check if the source directory exists
         if os.path.isdir(src) != True:  # Source directory doesn't exist.
-                                        # Add row to g.errorList, and skip to next
+                                        # Add row to globalvars.errorList, and skip to next
                                         # row
             print_info("The source directory '{}' does not exist. \
     Skipping to next transfer.".format(src))
-            g.errorList.append(row + ["Source does not exist"])
+            globalvars.errorList.append(row + ["Source does not exist"])
             continue
 
         transferStatus = transferFiles(src, dst, arrangementInfo)
 
         if transferStatus['status'] != True:
             # Something bad happened during this particular transfer.
-            # Add this row to the list g.errorList to keep a record of it.
+            # Add this row to the list globalvars.errorList to keep a record of it.
             # Also append diagnostic information about why the transfer was not
             # successful.
             #row.append(transferStatus['comment'])
-            g.errorList.append(row + [transferStatus['comment']])
+            globalvars.errorList.append(row + [transferStatus['comment']])
 
     # WRITE ALL ROWS THAT COULD NOT BE PROCESSED TO A CSV FILE
-    if len(g.errorList) > 1:  # Because at least the header row will always be there!
+    if len(globalvars.errorList) > 1:  # Because at least the header row will always be there!
         errorsCSVFileName = ("transfer_errors_" + strftime("%Y-%m-%d_%H%M%S", 
                                                         localtime(time()))
                             + ".csv")
@@ -190,12 +189,12 @@ def main():
             print_error(ioErrorCsvWrite)
             print_error("Could not write CSV file for errors encountered during \
     transfers")
-            exit (e.ERROR_CANNOT_WRITE_CSV_FILE)
+            exit (errorcodes.ERROR_CANNOT_WRITE_CSV_FILE)
 
         csvWriter = csv.writer(errorsCSVFileHandle, delimiter=',', quotechar='"',
                             lineterminator='\n')
 
-        for row in g.errorList:
+        for row in globalvars.errorList:
             csvWriter.writerow(row)
 
         errorsCSVFileHandle.close()
@@ -215,7 +214,7 @@ def print_info(*args):
     not enabled (default) then the arguments are passed one by one to the 
     built-in print() function.
     """
-    if g.quietMode == False:
+    if globalvars.quietMode == False:
         print(getCurrentEDTFTimestamp() + ": ", end='')
         for arg in args:
             print(arg, end='')
@@ -260,7 +259,7 @@ def init_db():
     except IOError as exception:
         print_error(exception)
         print_error("\nCould not read the DB Configuration file 'dbconf.json'")
-        quit(e.ERROR_CANNOT_READ_DBCONF_FILE)
+        quit(errorcodes.ERROR_CANNOT_READ_DBCONF_FILE)
 
     dbConfig = json.loads(dbConfigJson)
     dbAddr = dbConfig['dbaddress']
@@ -268,23 +267,23 @@ def init_db():
     #dbPass = urllib.quote_plus(dbConfig['dbpassword'])
     dbPass = dbConfig['dbpassword']
     dbName = dbConfig['dbname']
-    g.dbCollection = dbConfig['dbcollection']
+    globalvars.dbCollection = dbConfig['dbcollection']
 
     try:
         handle = MongoClient(dbAddr)[dbName]
     except pymongo.errors.ConnectionFailure as ExceptionConnFailure:
         print_error(ExceptionConnFailure)
-        exit(e.ERROR_CANNOT_CONNECT_TO_DB)
+        exit(errorcodes.ERROR_CANNOT_CONNECT_TO_DB)
 
     try:
         handle.authenticate(dbUser, dbPass)
     except pymongo.errors.PyMongoError as ExceptionPyMongoError:
         print_error(ExceptionPyMongoError)
-        exit(e.ERROR_CANNOT_AUTHENTICATE_DB_USER)
+        exit(errorcodes.ERROR_CANNOT_AUTHENTICATE_DB_USER)
 
     dbParamsDict = dict()
     dbParamsDict["handle"] = handle
-    dbParamsDict["collection_name"] = g.dbCollection
+    dbParamsDict["collection_name"] = globalvars.dbCollection
 
     return dbParamsDict
 
@@ -301,36 +300,36 @@ def readLabelDictionary():
     """
 
     try:
-        jsonObject = open(g.labelsFileName, "r").read()
+        jsonObject = open(globalvars.labelsFileName, "r").read()
     except IOError as jsonReadException:
         print_error(jsonReadException)
-        print_error("\nCould not read the labels file '{}'".format(g.labelsFileName))
-        quit(e.ERROR_CANNOT_READ_LABELS_FILE)
+        print_error("\nCould not read the labels file '{}'".format(globalvars.labelsFileName))
+        quit(errorcodes.ERROR_CANNOT_READ_LABELS_FILE)
 
     try:
         labels = json.loads(jsonObject, object_hook= lambda d: namedtuple('Labels', d.keys())(*d.values()))
     except json.JSONDecodeError as jsonDecodeError:
         print_error(jsonDecodeError)
-        print_error("The file '{}' is not a valid JSON file. Please check the file for formatting errors.".format(g.labelsFileName))
-        exit(e.ERROR_INVALID_JSON_FILE)
+        print_error("The file '{}' is not a valid JSON file. Please check the file for formatting errors.".format(globalvars.labelsFileName))
+        exit(errorcodes.ERROR_INVALID_JSON_FILE)
 
     return labels
 
 
 def readControlledVocabulary():
     try:
-        jsonObject = open(g.vocabFileName, "r").read()
+        jsonObject = open(globalvars.vocabFileName, "r").read()
     except IOError as jsonReadException:
         print_error(jsonReadException)
-        print_error("\nCould not read the labels file '{}'".format(g.vocabFileName))
-        quit(e.ERROR_CANNOT_READ_VOCAB_FILE)
+        print_error("\nCould not read the labels file '{}'".format(globalvars.vocabFileName))
+        quit(errorcodes.ERROR_CANNOT_READ_VOCAB_FILE)
 
     try:
         jsonVocab = json.loads(jsonObject, object_hook= lambda d: namedtuple('Vocab', d.keys())(*d.values()))
     except json.JSONDecodeError as jsonDecodeError:
         print_error(jsonDecodeError)
-        print_error("The file '{}' is not a valid JSON file. Please check the file for formatting errors.".format(g.vocabFileName))
-        exit(e.ERROR_INVALID_JSON_FILE)
+        print_error("The file '{}' is not a valid JSON file. Please check the file for formatting errors.".format(globalvars.vocabFileName))
+        exit(errorcodes.ERROR_INVALID_JSON_FILE)
 
     return jsonVocab
 
@@ -361,72 +360,72 @@ def initMetadataRecord(initParams):
     mdr["_id"] = uniqueId
 
     # Create the ADMIN entity here:
-    mdr[g.labels.admn_entity.name] = {}
-    mdr[g.labels.admn_entity.name][g.labels.arrangement.name] = {}
+    mdr[globalvars.labels.admn_entity.name] = {}
+    mdr[globalvars.labels.admn_entity.name][globalvars.labels.arrangement.name] = {}
 
     # Remove empty fields from the Arrangement dictionary
     arrangementFields = []
-    for key, value in iter(initParams[g.ARRANGEMENT_INFO_LABEL].items()):
+    for key, value in iter(initParams[globalvars.ARRANGEMENT_INFO_LABEL].items()):
         if value == "":
             arrangementFields.append(key)
 
     for key in arrangementFields:
-        initParams[g.ARRANGEMENT_INFO_LABEL].pop(key)
+        initParams[globalvars.ARRANGEMENT_INFO_LABEL].pop(key)
 
-    mdr[g.labels.admn_entity.name][g.labels.arrangement.name].update(initParams[g.ARRANGEMENT_INFO_LABEL])
-    mdr[g.labels.admn_entity.name][g.labels.arrangement.name][g.labels.serial_nbr.name] = g.MD_INIT_STRING
+    mdr[globalvars.labels.admn_entity.name][globalvars.labels.arrangement.name].update(initParams[globalvars.ARRANGEMENT_INFO_LABEL])
+    mdr[globalvars.labels.admn_entity.name][globalvars.labels.arrangement.name][globalvars.labels.serial_nbr.name] = globalvars.MD_INIT_STRING
 
     # Create the PREMIS (or preservation) entity here:
-    mdr[g.labels.pres_entity.name] = {}
-    mdr[g.labels.pres_entity.name][g.labels.obj_entity.name] = {}
-    mdr[g.labels.pres_entity.name][g.labels.obj_entity.name][g.labels.obj_id.name] = {}
-    mdr[g.labels.pres_entity.name][g.labels.obj_entity.name][g.labels.obj_id.name][g.labels.obj_id_typ.name] = g.OBJ_ID_TYPE
-    mdr[g.labels.pres_entity.name][g.labels.obj_entity.name][g.labels.obj_id.name][g.labels.obj_id_val.name] = uniqueId
-    mdr[g.labels.pres_entity.name][g.labels.obj_entity.name][g.labels.obj_cat.name] = g.vocab.objCat
-    mdr[g.labels.pres_entity.name][g.labels.obj_entity.name][g.labels.obj_chars.name] = {}
-    mdr[g.labels.pres_entity.name][g.labels.obj_entity.name][g.labels.obj_chars.name][g.labels.obj_fixity.name] = {}
-    mdr[g.labels.pres_entity.name][g.labels.obj_entity.name][g.labels.obj_chars.name][g.labels.obj_fixity.name][g.labels.obj_msgdgst_algo.name] = g.MD_INIT_STRING
-    mdr[g.labels.pres_entity.name][g.labels.obj_entity.name][g.labels.obj_chars.name][g.labels.obj_fixity.name][g.labels.obj_msgdgst.name] = g.MD_INIT_STRING
-    mdr[g.labels.pres_entity.name][g.labels.obj_entity.name][g.labels.obj_chars.name][g.labels.obj_size.name] = initParams["fileSize"]
-    mdr[g.labels.pres_entity.name][g.labels.obj_entity.name][g.labels.obj_chars.name][g.labels.obj_fmt.name] = {}
-    mdr[g.labels.pres_entity.name][g.labels.obj_entity.name][g.labels.obj_chars.name][g.labels.obj_fmt.name][g.labels.obj_fmt_dsgn.name] = {}
-    mdr[g.labels.pres_entity.name][g.labels.obj_entity.name][g.labels.obj_chars.name][g.labels.obj_fmt.name][g.labels.obj_fmt_dsgn.name][g.labels.obj_fmt_name.name] = initParams["fmtName"]
-    #mdr[g.labels.pres_entity.name][g.labels.obj_entity.name][g.labels.obj_chars.name][g.labels.obj_fmt.name][g.labels.obj_fmt_dsgn.name][g.labels.obj_fmt_ver.name] = initParams["fmtVer"]
+    mdr[globalvars.labels.pres_entity.name] = {}
+    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name] = {}
+    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_id.name] = {}
+    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_id.name][globalvars.labels.obj_id_typ.name] = globalvars.OBJ_ID_TYPE
+    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_id.name][globalvars.labels.obj_id_val.name] = uniqueId
+    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_cat.name] = globalvars.vocab.objCat
+    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name] = {}
+    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fixity.name] = {}
+    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fixity.name][globalvars.labels.obj_msgdgst_algo.name] = globalvars.MD_INIT_STRING
+    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fixity.name][globalvars.labels.obj_msgdgst.name] = globalvars.MD_INIT_STRING
+    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_size.name] = initParams["fileSize"]
+    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fmt.name] = {}
+    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fmt.name][globalvars.labels.obj_fmt_dsgn.name] = {}
+    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fmt.name][globalvars.labels.obj_fmt_dsgn.name][globalvars.labels.obj_fmt_name.name] = initParams["fmtName"]
+    #mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fmt.name][globalvars.labels.obj_fmt_dsgn.name][globalvars.labels.obj_fmt_ver.name] = initParams["fmtVer"]
 
-    mdr[g.labels.pres_entity.name][g.labels.obj_entity.name][g.labels.obj_orig_name.name] = initParams["fileName"]
+    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_orig_name.name] = initParams["fileName"]
     
     # Create a parent entity (list) of all PREMIS 'event' entities.
-    mdr[g.labels.pres_entity.name][g.labels.evt_parent_entity.name] = []
+    mdr[globalvars.labels.pres_entity.name][globalvars.labels.evt_parent_entity.name] = []
 
     # Add an event record corresponding to the 'Identifier Assignment' event
     eventRecord = {}
-    eventRecord[g.labels.evt_entity.name] = {}
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_id.name] = {}
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_id.name][g.labels.evt_id_typ.name] = g.EVT_ID_TYP
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_id.name][g.labels.evt_id_val.name] = getUniqueID()
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_typ.name] = g.vocab.evtTyp.idAssgn
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_dttime.name] = getCurrentEDTFTimestamp()
+    eventRecord[globalvars.labels.evt_entity.name] = {}
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_id.name] = {}
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_id.name][globalvars.labels.evt_id_typ.name] = globalvars.EVT_ID_TYP
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_id.name][globalvars.labels.evt_id_val.name] = getUniqueID()
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_typ.name] = globalvars.vocab.evtTyp.idAssgn
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_dttime.name] = getCurrentEDTFTimestamp()
 
     # Create a parent entity (list) for all PREMIS 'eventDetailInformation' entities
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_detail_parent.name] = []
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_detail_parent.name] = []
     eventDetailRecord = {}  # Create a single record for event detail information
-    eventDetailRecord[g.labels.evt_detail_info.name] = {}
-    eventDetailRecord[g.labels.evt_detail_info.name][g.labels.evt_detail_ext.name] = {}
-    eventDetailRecord[g.labels.evt_detail_info.name][g.labels.evt_detail_ext.name][g.labels.evt_detail_algo.name] = g.UNIQUE_ID_ALGO
-    eventDetailRecord[g.labels.evt_detail_info.name][g.labels.evt_detail_ext.name][g.labels.evt_detail_proglang.name] = g.PYTHON_VER_STR
-    eventDetailRecord[g.labels.evt_detail_info.name][g.labels.evt_detail_ext.name][g.labels.evt_detail_mthd.name] = g.UNIQUE_ID_METHOD
-    eventDetailRecord[g.labels.evt_detail_info.name][g.labels.evt_detail_ext.name][g.labels.evt_detail_idAssgn.name] = uniqueId
+    eventDetailRecord[globalvars.labels.evt_detail_info.name] = {}
+    eventDetailRecord[globalvars.labels.evt_detail_info.name][globalvars.labels.evt_detail_ext.name] = {}
+    eventDetailRecord[globalvars.labels.evt_detail_info.name][globalvars.labels.evt_detail_ext.name][globalvars.labels.evt_detail_algo.name] = globalvars.UNIQUE_ID_ALGO
+    eventDetailRecord[globalvars.labels.evt_detail_info.name][globalvars.labels.evt_detail_ext.name][globalvars.labels.evt_detail_proglang.name] = globalvars.PYTHON_VER_STR
+    eventDetailRecord[globalvars.labels.evt_detail_info.name][globalvars.labels.evt_detail_ext.name][globalvars.labels.evt_detail_mthd.name] = globalvars.UNIQUE_ID_METHOD
+    eventDetailRecord[globalvars.labels.evt_detail_info.name][globalvars.labels.evt_detail_ext.name][globalvars.labels.evt_detail_idAssgn.name] = uniqueId
 
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_detail_parent.name].append(eventDetailRecord)
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_detail_parent.name].append(eventDetailRecord)
 
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_outcm_info.name] = {}
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_outcm_info.name][g.labels.evt_outcm.name] = g.vocab.evtOutcm.success
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_outcm_info.name] = {}
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_outcm_info.name][globalvars.labels.evt_outcm.name] = globalvars.vocab.evtOutcm.success
 
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_lnk_agnt_id.name] = {}
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_lnk_agnt_id.name][g.labels.evt_lnk_agnt_id_typ.name] = g.LNK_AGNT_ID_TYPE
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_lnk_agnt_id.name][g.labels.evt_lnk_agnt_id_val.name] = g.LNK_AGNT_ID_VAL
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name] = {}
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name][globalvars.labels.evt_lnk_agnt_id_typ.name] = globalvars.LNK_AGNT_ID_TYPE
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name][globalvars.labels.evt_lnk_agnt_id_val.name] = globalvars.LNK_AGNT_ID_VAL
 
-    mdr[g.labels.pres_entity.name][g.labels.evt_parent_entity.name].append(eventRecord)
+    mdr[globalvars.labels.pres_entity.name][globalvars.labels.evt_parent_entity.name].append(eventRecord)
     print("The following record has been initialized: {}".format(mdr))
 
     return mdr
@@ -434,148 +433,148 @@ def initMetadataRecord(initParams):
 
 def addMsgDigestCalcEvent(mdr, chksm, chksmAlgo):
     eventRecord = {}
-    eventRecord[g.labels.evt_entity.name] = {}
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_id.name] = {}
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_id.name][g.labels.evt_id_typ.name] = g.EVT_ID_TYP
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_id.name][g.labels.evt_id_val.name] = getUniqueID()
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_typ.name] = g.vocab.evtTyp.msgDgstCalc
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_dttime.name] = getCurrentEDTFTimestamp()
+    eventRecord[globalvars.labels.evt_entity.name] = {}
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_id.name] = {}
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_id.name][globalvars.labels.evt_id_typ.name] = globalvars.EVT_ID_TYP
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_id.name][globalvars.labels.evt_id_val.name] = getUniqueID()
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_typ.name] = globalvars.vocab.evtTyp.msgDgstCalc
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_dttime.name] = getCurrentEDTFTimestamp()
 
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_detail_parent.name] = []
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_detail_parent.name] = []
     eventDetailRecord = {}  # Create a single record for event detail information
-    eventDetailRecord[g.labels.evt_detail_info.name] = {}
-    eventDetailRecord[g.labels.evt_detail_info.name][g.labels.evt_detail_ext.name] = {}
-    eventDetailRecord[g.labels.evt_detail_info.name][g.labels.evt_detail_ext.name][g.labels.evt_detail_algo.name] = g.CHECKSUM_ALGO
-    eventDetailRecord[g.labels.evt_detail_info.name][g.labels.evt_detail_ext.name][g.labels.evt_detail_proglang.name] = g.PYTHON_VER_STR
-    eventDetailRecord[g.labels.evt_detail_info.name][g.labels.evt_detail_ext.name][g.labels.evt_detail_mthd.name] = g.CHECKSUM_METHOD
-    eventDetailRecord[g.labels.evt_detail_info.name][g.labels.evt_detail_ext.name][g.labels.evt_detail_msgDgst.name] = chksm
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_detail_parent.name].append(eventDetailRecord)
+    eventDetailRecord[globalvars.labels.evt_detail_info.name] = {}
+    eventDetailRecord[globalvars.labels.evt_detail_info.name][globalvars.labels.evt_detail_ext.name] = {}
+    eventDetailRecord[globalvars.labels.evt_detail_info.name][globalvars.labels.evt_detail_ext.name][globalvars.labels.evt_detail_algo.name] = globalvars.CHECKSUM_ALGO
+    eventDetailRecord[globalvars.labels.evt_detail_info.name][globalvars.labels.evt_detail_ext.name][globalvars.labels.evt_detail_proglang.name] = globalvars.PYTHON_VER_STR
+    eventDetailRecord[globalvars.labels.evt_detail_info.name][globalvars.labels.evt_detail_ext.name][globalvars.labels.evt_detail_mthd.name] = globalvars.CHECKSUM_METHOD
+    eventDetailRecord[globalvars.labels.evt_detail_info.name][globalvars.labels.evt_detail_ext.name][globalvars.labels.evt_detail_msgDgst.name] = chksm
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_detail_parent.name].append(eventDetailRecord)
 
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_outcm_info.name] = {}
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_outcm_info.name][g.labels.evt_outcm.name] = g.vocab.evtOutcm.success
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_outcm_info.name] = {}
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_outcm_info.name][globalvars.labels.evt_outcm.name] = globalvars.vocab.evtOutcm.success
 
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_lnk_agnt_id.name] = {}
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_lnk_agnt_id.name][g.labels.evt_lnk_agnt_id_typ.name] = g.LNK_AGNT_ID_TYPE
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_lnk_agnt_id.name][g.labels.evt_lnk_agnt_id_val.name] = g.LNK_AGNT_ID_VAL
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name] = {}
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name][globalvars.labels.evt_lnk_agnt_id_typ.name] = globalvars.LNK_AGNT_ID_TYPE
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name][globalvars.labels.evt_lnk_agnt_id_val.name] = globalvars.LNK_AGNT_ID_VAL
 
-    mdr[g.labels.pres_entity.name][g.labels.evt_parent_entity.name].append(eventRecord)
+    mdr[globalvars.labels.pres_entity.name][globalvars.labels.evt_parent_entity.name].append(eventRecord)
 
     # Record the checksum, and the checksum algorithm in the 'object' entity
-    mdr[g.labels.pres_entity.name][g.labels.obj_entity.name][g.labels.obj_chars.name][g.labels.obj_fixity.name][g.labels.obj_msgdgst_algo.name] = g.CHECKSUM_ALGO
-    mdr[g.labels.pres_entity.name][g.labels.obj_entity.name][g.labels.obj_chars.name][g.labels.obj_fixity.name][g.labels.obj_msgdgst.name] = chksm
+    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fixity.name][globalvars.labels.obj_msgdgst_algo.name] = globalvars.CHECKSUM_ALGO
+    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fixity.name][globalvars.labels.obj_msgdgst.name] = chksm
 
     return mdr
 
 
 def addFileCopyEvent(mdr, evtTyp, srcFilePath, dstFilePath):
     eventRecord = {}
-    eventRecord[g.labels.evt_entity.name] = {}
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_id.name] = {}
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_id.name][g.labels.evt_id_typ.name] = g.EVT_ID_TYP
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_id.name][g.labels.evt_id_val.name] = getUniqueID()
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_typ.name] = g.vocab.evtTyp.replication
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_dttime.name] = getCurrentEDTFTimestamp()
+    eventRecord[globalvars.labels.evt_entity.name] = {}
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_id.name] = {}
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_id.name][globalvars.labels.evt_id_typ.name] = globalvars.EVT_ID_TYP
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_id.name][globalvars.labels.evt_id_val.name] = getUniqueID()
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_typ.name] = globalvars.vocab.evtTyp.replication
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_dttime.name] = getCurrentEDTFTimestamp()
 
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_detail_parent.name] = []
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_detail_parent.name] = []
     eventDetailRecord = {}  # Create a single record for event detail information
-    eventDetailRecord[g.labels.evt_detail_info.name] = {}
-    eventDetailRecord[g.labels.evt_detail_info.name][g.labels.evt_detail_ext.name] = {}
-    eventDetailRecord[g.labels.evt_detail_info.name][g.labels.evt_detail_ext.name][g.labels.evt_detail_src.name] = srcFilePath
-    eventDetailRecord[g.labels.evt_detail_info.name][g.labels.evt_detail_ext.name][g.labels.evt_detail_dst.name] = dstFilePath
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_detail_parent.name].append(eventDetailRecord)
+    eventDetailRecord[globalvars.labels.evt_detail_info.name] = {}
+    eventDetailRecord[globalvars.labels.evt_detail_info.name][globalvars.labels.evt_detail_ext.name] = {}
+    eventDetailRecord[globalvars.labels.evt_detail_info.name][globalvars.labels.evt_detail_ext.name][globalvars.labels.evt_detail_src.name] = srcFilePath
+    eventDetailRecord[globalvars.labels.evt_detail_info.name][globalvars.labels.evt_detail_ext.name][globalvars.labels.evt_detail_dst.name] = dstFilePath
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_detail_parent.name].append(eventDetailRecord)
 
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_outcm_info.name] = {}
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_outcm_info.name][g.labels.evt_outcm.name] = g.vocab.evtOutcm.success
-    #eventRecord[g.labels.evt_entity.name][g.labels.evt_outcm_info.name][g.labels.evt_outcm_detail.name] = {}
-    #eventRecord[g.labels.evt_entity.name][g.labels.evt_outcm_info.name][g.labels.evt_outcm_detail.name][g.labels.evt_outcm_detail_note.name] = "Original file successfully replicated"
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_outcm_info.name] = {}
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_outcm_info.name][globalvars.labels.evt_outcm.name] = globalvars.vocab.evtOutcm.success
+    #eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_outcm_info.name][globalvars.labels.evt_outcm_detail.name] = {}
+    #eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_outcm_info.name][globalvars.labels.evt_outcm_detail.name][globalvars.labels.evt_outcm_detail_note.name] = "Original file successfully replicated"
 
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_lnk_agnt_id.name] = {}
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_lnk_agnt_id.name][g.labels.evt_lnk_agnt_id_typ.name] = g.LNK_AGNT_ID_TYPE
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_lnk_agnt_id.name][g.labels.evt_lnk_agnt_id_val.name] = g.LNK_AGNT_ID_VAL
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name] = {}
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name][globalvars.labels.evt_lnk_agnt_id_typ.name] = globalvars.LNK_AGNT_ID_TYPE
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name][globalvars.labels.evt_lnk_agnt_id_val.name] = globalvars.LNK_AGNT_ID_VAL
 
-    mdr[g.labels.pres_entity.name][g.labels.evt_parent_entity.name].append(eventRecord)
+    mdr[globalvars.labels.pres_entity.name][globalvars.labels.evt_parent_entity.name].append(eventRecord)
     return mdr
 
 
 def addFilenameChangeEvent(mdr, dstFilePrelimPath, dstFileUniquePath):
     eventRecord = {}
-    eventRecord[g.labels.evt_entity.name] = {}
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_id.name] = {}
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_id.name][g.labels.evt_id_typ.name] = g.EVT_ID_TYP
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_id.name][g.labels.evt_id_val.name] = getUniqueID()
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_typ.name] = g.vocab.evtTyp.filenameChg
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_dttime.name] = getCurrentEDTFTimestamp()
+    eventRecord[globalvars.labels.evt_entity.name] = {}
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_id.name] = {}
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_id.name][globalvars.labels.evt_id_typ.name] = globalvars.EVT_ID_TYP
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_id.name][globalvars.labels.evt_id_val.name] = getUniqueID()
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_typ.name] = globalvars.vocab.evtTyp.filenameChg
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_dttime.name] = getCurrentEDTFTimestamp()
 
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_detail_parent.name] = []
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_detail_parent.name] = []
     eventDetailRecord = {}  # Create a single record for event detail information
-    eventDetailRecord[g.labels.evt_detail_info.name] = {}
-    eventDetailRecord[g.labels.evt_detail_info.name][g.labels.evt_detail_ext.name] = {}
-    eventDetailRecord[g.labels.evt_detail_info.name][g.labels.evt_detail_ext.name][g.labels.evt_detail_src.name] = dstFilePrelimPath
-    eventDetailRecord[g.labels.evt_detail_info.name][g.labels.evt_detail_ext.name][g.labels.evt_detail_dst.name] = dstFileUniquePath
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_detail_parent.name].append(eventDetailRecord)
+    eventDetailRecord[globalvars.labels.evt_detail_info.name] = {}
+    eventDetailRecord[globalvars.labels.evt_detail_info.name][globalvars.labels.evt_detail_ext.name] = {}
+    eventDetailRecord[globalvars.labels.evt_detail_info.name][globalvars.labels.evt_detail_ext.name][globalvars.labels.evt_detail_src.name] = dstFilePrelimPath
+    eventDetailRecord[globalvars.labels.evt_detail_info.name][globalvars.labels.evt_detail_ext.name][globalvars.labels.evt_detail_dst.name] = dstFileUniquePath
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_detail_parent.name].append(eventDetailRecord)
 
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_outcm_info.name] = {}
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_outcm_info.name][g.labels.evt_outcm.name] = g.vocab.evtOutcm.success
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_outcm_info.name] = {}
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_outcm_info.name][globalvars.labels.evt_outcm.name] = globalvars.vocab.evtOutcm.success
 
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_lnk_agnt_id.name] = {}
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_lnk_agnt_id.name][g.labels.evt_lnk_agnt_id_typ.name] = g.LNK_AGNT_ID_TYPE
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_lnk_agnt_id.name][g.labels.evt_lnk_agnt_id_val.name] = g.LNK_AGNT_ID_VAL
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name] = {}
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name][globalvars.labels.evt_lnk_agnt_id_typ.name] = globalvars.LNK_AGNT_ID_TYPE
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name][globalvars.labels.evt_lnk_agnt_id_val.name] = globalvars.LNK_AGNT_ID_VAL
 
-    mdr[g.labels.pres_entity.name][g.labels.evt_parent_entity.name].append(eventRecord)
+    mdr[globalvars.labels.pres_entity.name][globalvars.labels.evt_parent_entity.name].append(eventRecord)
     return mdr
 
 
 def addFixityCheckEvent(mdr, success, calcChecksum):
     eventRecord = {}
-    eventRecord[g.labels.evt_entity.name] = {}
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_id.name] = {}
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_id.name][g.labels.evt_id_typ.name] = g.EVT_ID_TYP
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_id.name][g.labels.evt_id_val.name] = getUniqueID()
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_typ.name] = g.vocab.evtTyp.fixityChk
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_dttime.name] = getCurrentEDTFTimestamp()
+    eventRecord[globalvars.labels.evt_entity.name] = {}
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_id.name] = {}
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_id.name][globalvars.labels.evt_id_typ.name] = globalvars.EVT_ID_TYP
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_id.name][globalvars.labels.evt_id_val.name] = getUniqueID()
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_typ.name] = globalvars.vocab.evtTyp.fixityChk
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_dttime.name] = getCurrentEDTFTimestamp()
 
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_detail_parent.name] = []
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_detail_parent.name] = []
     eventDetailRecord = {}  # Create a single record for event detail information
-    eventDetailRecord[g.labels.evt_detail_info.name] = {}
-    eventDetailRecord[g.labels.evt_detail_info.name][g.labels.evt_detail_ext.name] = {}
-    eventDetailRecord[g.labels.evt_detail_info.name][g.labels.evt_detail_ext.name][g.labels.evt_detail_calc_msgDgst.name] = calcChecksum
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_detail_parent.name].append(eventDetailRecord)
+    eventDetailRecord[globalvars.labels.evt_detail_info.name] = {}
+    eventDetailRecord[globalvars.labels.evt_detail_info.name][globalvars.labels.evt_detail_ext.name] = {}
+    eventDetailRecord[globalvars.labels.evt_detail_info.name][globalvars.labels.evt_detail_ext.name][globalvars.labels.evt_detail_calc_msgDgst.name] = calcChecksum
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_detail_parent.name].append(eventDetailRecord)
 
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_outcm_info.name] = {}
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_outcm_info.name][g.labels.evt_outcm.name] = g.vocab.evtOutcm.success
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_outcm_info.name] = {}
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_outcm_info.name][globalvars.labels.evt_outcm.name] = globalvars.vocab.evtOutcm.success
 
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_lnk_agnt_id.name] = {}
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_lnk_agnt_id.name][g.labels.evt_lnk_agnt_id_typ.name] = g.LNK_AGNT_ID_TYPE
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_lnk_agnt_id.name][g.labels.evt_lnk_agnt_id_val.name] = g.LNK_AGNT_ID_VAL
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name] = {}
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name][globalvars.labels.evt_lnk_agnt_id_typ.name] = globalvars.LNK_AGNT_ID_TYPE
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name][globalvars.labels.evt_lnk_agnt_id_val.name] = globalvars.LNK_AGNT_ID_VAL
 
-    mdr[g.labels.pres_entity.name][g.labels.evt_parent_entity.name].append(eventRecord)
+    mdr[globalvars.labels.pres_entity.name][globalvars.labels.evt_parent_entity.name].append(eventRecord)
     return mdr
 
 
 def addAccessionEvent(mdr):
     eventRecord = {}
-    eventRecord[g.labels.evt_entity.name] = {}
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_id.name] = {}
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_id.name][g.labels.evt_id_typ.name] = g.EVT_ID_TYP
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_id.name][g.labels.evt_id_val.name] = getUniqueID()
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_typ.name] = g.vocab.evtTyp.accession
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_dttime.name] = getCurrentEDTFTimestamp()
+    eventRecord[globalvars.labels.evt_entity.name] = {}
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_id.name] = {}
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_id.name][globalvars.labels.evt_id_typ.name] = globalvars.EVT_ID_TYP
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_id.name][globalvars.labels.evt_id_val.name] = getUniqueID()
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_typ.name] = globalvars.vocab.evtTyp.accession
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_dttime.name] = getCurrentEDTFTimestamp()
 
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_outcm_info.name] = {}
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_outcm_info.name][g.labels.evt_outcm.name] = g.vocab.evtOutcm.success
-    #eventRecord[g.labels.evt_entity.name][g.labels.evt_outcm_info.name][g.labels.evt_outcm_detail.name] = {}
-    #objectIdVal = mdr[g.labels.pres_entity.name][g.labels.obj_entity.name][g.labels.obj_id.name][g.labels.obj_id_val.name]
-    #eventRecord[g.labels.evt_entity.name][g.labels.evt_outcm_info.name][g.labels.evt_outcm_detail.name][g.labels.evt_outcm_detail_note.name] = "Object with ID '{}' successfully included in the database".format(objectIdVal)
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_outcm_info.name] = {}
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_outcm_info.name][globalvars.labels.evt_outcm.name] = globalvars.vocab.evtOutcm.success
+    #eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_outcm_info.name][globalvars.labels.evt_outcm_detail.name] = {}
+    #objectIdVal = mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_id.name][globalvars.labels.obj_id_val.name]
+    #eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_outcm_info.name][globalvars.labels.evt_outcm_detail.name][globalvars.labels.evt_outcm_detail_note.name] = "Object with ID '{}' successfully included in the database".format(objectIdVal)
 
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_lnk_agnt_id.name] = {}
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_lnk_agnt_id.name][g.labels.evt_lnk_agnt_id_typ.name] = g.LNK_AGNT_ID_TYPE
-    eventRecord[g.labels.evt_entity.name][g.labels.evt_lnk_agnt_id.name][g.labels.evt_lnk_agnt_id_val.name] = g.LNK_AGNT_ID_VAL
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name] = {}
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name][globalvars.labels.evt_lnk_agnt_id_typ.name] = globalvars.LNK_AGNT_ID_TYPE
+    eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name][globalvars.labels.evt_lnk_agnt_id_val.name] = globalvars.LNK_AGNT_ID_VAL
 
-    mdr[g.labels.pres_entity.name][g.labels.evt_parent_entity.name].append(eventRecord)
+    mdr[globalvars.labels.pres_entity.name][globalvars.labels.evt_parent_entity.name].append(eventRecord)
     return mdr
 
 def updateSerialNumber(mdr, serialNbr):
-    mdr[g.labels.admn_entity.name][g.labels.arrangement.name][g.labels.serial_nbr.name] = serialNbr
+    mdr[globalvars.labels.admn_entity.name][globalvars.labels.arrangement.name][globalvars.labels.serial_nbr.name] = serialNbr
     return mdr
 
 
@@ -592,20 +591,20 @@ def insertRecordInDB(mdr):
     mdr = addAccessionEvent(mdr)
 
     try:
-        dbInsertResult = g.dbHandle[g.dbCollection].insert_one(mdr)
+        dbInsertResult = globalvars.dbHandle[globalvars.dbCollection].insert_one(mdr)
     except pymongo.errors.PyMongoError as ExceptionPyMongoError:
         print_error(ExceptionPyMongoError)
-        return(e.ERROR_CANNOT_INSERT_INTO_DB)
+        return(errorcodes.ERROR_CANNOT_INSERT_INTO_DB)
     
     return(str(dbInsertResult.inserted_id))
 
 
 def DeleteRecordFromDB(id):
-    retVal = g.dbHandle[g.dbCollection].delete_one({'_id': id})
+    retVal = globalvars.dbHandle[globalvars.dbCollection].delete_one({'_id': id})
     
     if retVal.deleted_count != 1:
         print_error("Cannot remove record from DB")
-        exit(e.ERROR_CANNOT_REMOVE_RECORD_FROM_DB)
+        exit(errorcodes.ERROR_CANNOT_REMOVE_RECORD_FROM_DB)
 
 
 def getUniqueID():
@@ -613,15 +612,15 @@ def getUniqueID():
 
 
 def getHighestSerialNo(dirName):
-    queryField = ".".join([g.labels.pres_entity.name, g.labels.obj_entity.name, g.labels.obj_orig_name.name])
-    serialNoLabel = ".".join([g.labels.admn_entity.name, g.labels.arrangement.name, g.labels.serial_nbr.name])
-    records = g.dbHandle[g.dbCollection].find({queryField: {"$regex": dirName}}, {"_id": 0, serialNoLabel: 1})
+    queryField = ".".join([globalvars.labels.pres_entity.name, globalvars.labels.obj_entity.name, globalvars.labels.obj_orig_name.name])
+    serialNoLabel = ".".join([globalvars.labels.admn_entity.name, globalvars.labels.arrangement.name, globalvars.labels.serial_nbr.name])
+    records = globalvars.dbHandle[globalvars.dbCollection].find({queryField: {"$regex": dirName}}, {"_id": 0, serialNoLabel: 1})
     records = [record for record in records]
 
     if len(records) == 0:
         return 1
     else:
-        serialNos = [int(record[g.labels.admn_entity.name][g.labels.arrangement.name][g.labels.serial_nbr.name]) for record in records]
+        serialNos = [int(record[globalvars.labels.admn_entity.name][globalvars.labels.arrangement.name][globalvars.labels.serial_nbr.name]) for record in records]
         return max(serialNos)
 
 
@@ -636,7 +635,7 @@ def getFileFormatVersion(fileName):
 
 
 def isHeaderValid(hdr):
-    if hdr[0] == g.CSV_COL_1_NAME and hdr[1] == g.CSV_COL_2_NAME:
+    if hdr[0] == globalvars.CSV_COL_1_NAME and hdr[1] == globalvars.CSV_COL_2_NAME:
         return True
     else:
         return False
@@ -662,7 +661,7 @@ def transferFiles(src, dst, arrangementInfo):
 
     # Convert the source and destination paths to absolute paths.
     # While this is not important as far as the file
-    # movement is concerned (i.e., via the shutil functions),
+    # movement is concerned (i.errorcodes., via the shutil functions),
     # but this is important from the metadata point-of-view.
     src = os.path.abspath(src)
     dst = os.path.abspath(dst)
@@ -680,8 +679,8 @@ def transferFiles(src, dst, arrangementInfo):
             print_error(osError)
             print_error("cannot create destination directory {}. \
                 Skipping to next transfer.")
-            g.errorList.append(row + [str(osError)])
-            exit(e.ERROR_CANNOT_CREATE_DESTINATION_DIRECTORY)
+            globalvars.errorList.append(row + [str(osError)])
+            exit(errorcodes.ERROR_CANNOT_CREATE_DESTINATION_DIRECTORY)
 
         prevHighestSerialNo = 0  # Initialize the serial number to 1, since this
                           # destination directory has just been created.
@@ -693,23 +692,23 @@ def transferFiles(src, dst, arrangementInfo):
     try:
         # Create a list of files with the given extension within the src 
         # directory.
-        fileList = sorted(glob.glob(os.path.join(src, "*." + g.ext)))
+        fileList = sorted(glob.glob(os.path.join(src, "*." + globalvars.ext)))
         totalNumFiles = len(fileList)
         numFilesTransferred = 0  # Keeps track of number of files successfully
                                  # transferred in the current run.
 
-        if totalNumFiles == 0:  # That no file with the extension g.ext was 
+        if totalNumFiles == 0:  # That no file with the extension globalvars.ext was 
                                 # found is an 'anomalous' condition and should
                                 # be treated as an unsuccessful transfer just
                                 # to caution the user. This cautioning will be
                                 # very helpful in cases of large batch files
             returnData['status'] = False
-            print_error("No files found with extension '{}'!".format(g.ext))
-            returnData['comment'] = "No files found with extension '{}'!".format(g.ext)
+            print_error("No files found with extension '{}'!".format(globalvars.ext))
+            returnData['comment'] = "No files found with extension '{}'!".format(globalvars.ext)
             return returnData
 
         currentSerialNo = prevHighestSerialNo + 1
-        # Loop over all files with the extension g.ext
+        # Loop over all files with the extension globalvars.ext
         for fileName in fileList[prevHighestSerialNo:]:
             srcFileName = os.path.basename(fileName)
             srcFileExt = srcFileName.split('.')[-1]
@@ -720,7 +719,7 @@ def transferFiles(src, dst, arrangementInfo):
             recordParams["fileSize"] = os.path.getsize(fileName)
             recordParams["fmtName"] = getFileFormatName(srcFileName)
             recordParams["fmtVer"] = getFileFormatVersion(srcFileName)
-            recordParams[g.ARRANGEMENT_INFO_LABEL] = arrangementInfo
+            recordParams[globalvars.ARRANGEMENT_INFO_LABEL] = arrangementInfo
             metadataRecord = initMetadataRecord(recordParams)
 
             # Extract the unique id from the just-initialized record
@@ -737,19 +736,19 @@ def transferFiles(src, dst, arrangementInfo):
             # or moved to the destination directory
             srcChecksum = getFileChecksum(fileName)
 
-            metadataRecord = addMsgDigestCalcEvent(metadataRecord, srcChecksum, g.CHECKSUM_ALGO)
+            metadataRecord = addMsgDigestCalcEvent(metadataRecord, srcChecksum, globalvars.CHECKSUM_ALGO)
 
             # To be conservative about the transfers, this script implements the move operation as:
             # 1. COPY the file from source to destination.
             # 2. Compare the checksum of the copied file to that of the original.
             # 3. DELETE the copied file in case the checksums do not match.
             # 4. DELETE the original file in case the checksums match.
-            print_info("{} '{}' from '{}' to '{}'".format("Moving" if g.move == True else "Copying", os.path.basename(fileName), src, dst))
+            print_info("{} '{}' from '{}' to '{}'".format("Moving" if globalvars.move == True else "Copying", os.path.basename(fileName), src, dst))
 
             # Make a copy of the source file at the destination path
             shutil.copy(fileName, dstFilePrelimPath)
 
-            if g.move == True:
+            if globalvars.move == True:
                 eventType = "migration"
             else:
                 eventType = "replication"
@@ -774,7 +773,7 @@ def transferFiles(src, dst, arrangementInfo):
                     os.remove(dstFileUniquePath)
                 except os.error as ExceptionFileRemoval:
                     print_error(ExceptionFileRemoval)
-                    exit(e.ERROR_CANNOT_REMOVE_FILE)
+                    exit(errorcodes.ERROR_CANNOT_REMOVE_FILE)
 
                 # Remove entry from DB if present
                 DeleteRecordFromDB(uniqueId)
@@ -796,13 +795,13 @@ def transferFiles(src, dst, arrangementInfo):
                     returnData['comment'] = "DB Insert operation not successful."
                     return(returnData)
 
-                if g.move == True:
+                if globalvars.move == True:
                     try:
                         os.remove(dstFileUniquePath)
                     except os.error as ExceptionFileRemoval:
                         print_error("Cannot remove file '{}' from source '{}' after the move. Only a copy was made to the destination.".format(srcFileName, srcDirectory))
                         print_error(ExceptionFileRemoval)
-                        exit(e.ERROR_CANNOT_REMOVE_FILE)
+                        exit(errorcodes.ERROR_CANNOT_REMOVE_FILE)
 
                 # Increment the file serial number for the next transfer
                 # and the corresponding DB record
@@ -841,24 +840,24 @@ def parseCommandLineArgs(argParser):
 
     if len(sys.argv) < 2:
         argParser.print_help()
-        exit(e.ERROR_INVALID_ARGUMENT_STRING)
+        exit(errorcodes.ERROR_INVALID_ARGUMENT_STRING)
 
-    g.ext = args.extension[0]
-    g.quietMode = args.quiet
-    g.move = args.move
+    globalvars.ext = args.extension[0]
+    globalvars.quietMode = args.quiet
+    globalvars.move = args.move
 
     if args.file:
-        g.batchMode = True
-        g.csvFile = args.file[0]
+        globalvars.batchMode = True
+        globalvars.csvFile = args.file[0]
     else:
-        g.batchMode = False
+        globalvars.batchMode = False
         if len(args.srcDstPair) != 2:
             src = args.srcDstPair[0]
             dst = args.srcDstPair[1]
-            g.transferList.append([src, dst])
+            globalvars.transferList.append([src, dst])
         else:
             argParser.print_help()
-            exit(e.ERROR_INVALID_ARGUMENT_STRING)
+            exit(errorcodes.ERROR_INVALID_ARGUMENT_STRING)
 
 
 if __name__ == "__main__":
