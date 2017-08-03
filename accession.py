@@ -36,19 +36,15 @@
 # IMPORT NEEDED MODULES
 import csv
 import sys
-import getopt
 import os
 import glob
 import shutil
 import hashlib
-import pymongo
 from pymongo import MongoClient
-#from bson.objectid import ObjectId
 from uuid import uuid4
 from datetime import datetime
 from time import localtime, time, strftime
 import json
-import urllib
 import argparse
 from collections import namedtuple
 
