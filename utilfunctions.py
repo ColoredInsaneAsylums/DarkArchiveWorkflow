@@ -147,13 +147,13 @@ def getLinkingAgentRole():
 
 
 def initMetadataRecord(initParams):
-    mdr = {}
+    metadataRecord = {}
     uniqueId = getUniqueID()
-    mdr["_id"] = uniqueId
+    metadataRecord["_id"] = uniqueId
 
     # Create the ADMIN entity here:
-    mdr[globalvars.labels.admn_entity.name] = {}
-    mdr[globalvars.labels.admn_entity.name][globalvars.labels.arrangement.name] = {}
+    metadataRecord[globalvars.labels.admn_entity.name] = {}
+    metadataRecord[globalvars.labels.admn_entity.name][globalvars.labels.arrangement.name] = {}
 
     # Remove empty fields from the Arrangement dictionary
     arrangementFields = []
@@ -164,32 +164,36 @@ def initMetadataRecord(initParams):
     for key in arrangementFields:
         initParams[globalvars.ARRANGEMENT_INFO_LABEL].pop(key)
 
-    mdr[globalvars.labels.admn_entity.name][globalvars.labels.arrangement.name].update(initParams[globalvars.ARRANGEMENT_INFO_LABEL])
-    mdr[globalvars.labels.admn_entity.name][globalvars.labels.arrangement.name][globalvars.labels.serial_nbr.name] = globalvars.MD_INIT_STRING
+    metadataRecord[globalvars.labels.admn_entity.name][globalvars.labels.arrangement.name].update(initParams[globalvars.ARRANGEMENT_INFO_LABEL])
+    metadataRecord[globalvars.labels.admn_entity.name][globalvars.labels.arrangement.name][globalvars.labels.serial_nbr.name] = globalvars.MD_INIT_STRING
 
     # Create the PREMIS (or preservation) entity here:
-    mdr[globalvars.labels.pres_entity.name] = {}
-    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name] = {}
-    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_id.name] = {}
-    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_id.name][globalvars.labels.obj_id_typ.name] = globalvars.OBJ_ID_TYPE
-    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_id.name][globalvars.labels.obj_id_val.name] = uniqueId
-    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_cat.name] = globalvars.vocab.objCat
-    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name] = {}
-    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fixity.name] = {}
-    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fixity.name][globalvars.labels.obj_msgdgst_algo.name] = globalvars.MD_INIT_STRING
-    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fixity.name][globalvars.labels.obj_msgdgst.name] = globalvars.MD_INIT_STRING
-    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_size.name] = initParams["fileSize"]
-    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fmt.name] = {}
-    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fmt.name][globalvars.labels.obj_fmt_dsgn.name] = {}
-    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fmt.name][globalvars.labels.obj_fmt_dsgn.name][globalvars.labels.obj_fmt_name.name] = initParams["fmtName"]
-    #mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fmt.name][globalvars.labels.obj_fmt_dsgn.name][globalvars.labels.obj_fmt_ver.name] = initParams["fmtVer"]
+    metadataRecord[globalvars.labels.pres_entity.name] = {}
+    metadataRecord[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name] = {}
+    metadataRecord[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_id.name] = {}
+    metadataRecord[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_id.name][globalvars.labels.obj_id_typ.name] = globalvars.OBJ_ID_TYPE
+    metadataRecord[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_id.name][globalvars.labels.obj_id_val.name] = uniqueId
+    metadataRecord[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_cat.name] = globalvars.vocab.objCat
+    metadataRecord[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name] = {}
+    metadataRecord[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fixity.name] = {}
+    metadataRecord[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fixity.name][globalvars.labels.obj_msgdgst_algo.name] = globalvars.MD_INIT_STRING
+    metadataRecord[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fixity.name][globalvars.labels.obj_msgdgst.name] = globalvars.MD_INIT_STRING
+    metadataRecord[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_size.name] = initParams["fileSize"]
+    metadataRecord[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fmt.name] = {}
+    metadataRecord[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fmt.name][globalvars.labels.obj_fmt_dsgn.name] = {}
+    metadataRecord[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fmt.name][globalvars.labels.obj_fmt_dsgn.name][globalvars.labels.obj_fmt_name.name] = initParams["fmtName"]
+    #metadataRecord[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fmt.name][globalvars.labels.obj_fmt_dsgn.name][globalvars.labels.obj_fmt_ver.name] = initParams["fmtVer"]
 
-    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_orig_name.name] = initParams["fileName"]
+    metadataRecord[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_orig_name.name] = initParams["fileName"]
     
     # Create a parent entity (list) of all PREMIS 'event' entities.
-    mdr[globalvars.labels.pres_entity.name][globalvars.labels.evt_parent_entity.name] = []
+    metadataRecord[globalvars.labels.pres_entity.name][globalvars.labels.evt_parent_entity.name] = []
+    print_info("The following record has been initialized: {}".format(metadataRecord))
 
-    # Add an event record corresponding to the 'Identifier Assignment' event
+    return metadataRecord
+
+
+def createIDAssignmentEvent(uniqueId):
     eventRecord = {}
     eventRecord[globalvars.labels.evt_entity.name] = {}
     eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_id.name] = {}
@@ -217,13 +221,9 @@ def initMetadataRecord(initParams):
     eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name][globalvars.labels.evt_lnk_agnt_id_typ.name] = globalvars.LNK_AGNT_ID_TYPE
     eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name][globalvars.labels.evt_lnk_agnt_id_val.name] = globalvars.LNK_AGNT_ID_VAL
 
-    mdr[globalvars.labels.pres_entity.name][globalvars.labels.evt_parent_entity.name].append(eventRecord)
-    print_info("The following record has been initialized: {}".format(mdr))
+    return eventRecord
 
-    return mdr
-
-
-def addMsgDigestCalcEvent(mdr, chksm, chksmAlgo):
+def createMsgDigestCalcEvent(chksm, chksmAlgo):
     eventRecord = {}
     eventRecord[globalvars.labels.evt_entity.name] = {}
     eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_id.name] = {}
@@ -249,16 +249,9 @@ def addMsgDigestCalcEvent(mdr, chksm, chksmAlgo):
     eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name][globalvars.labels.evt_lnk_agnt_id_typ.name] = globalvars.LNK_AGNT_ID_TYPE
     eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name][globalvars.labels.evt_lnk_agnt_id_val.name] = globalvars.LNK_AGNT_ID_VAL
 
-    mdr[globalvars.labels.pres_entity.name][globalvars.labels.evt_parent_entity.name].append(eventRecord)
+    return eventRecord
 
-    # Record the checksum, and the checksum algorithm in the 'object' entity
-    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fixity.name][globalvars.labels.obj_msgdgst_algo.name] = globalvars.CHECKSUM_ALGO
-    mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fixity.name][globalvars.labels.obj_msgdgst.name] = chksm
-
-    return mdr
-
-
-def addFileCopyEvent(mdr, evtTyp, srcFilePath, dstFilePath):
+def createFileCopyEvent(evtTyp, srcFilePath, dstFilePath):
     eventRecord = {}
     eventRecord[globalvars.labels.evt_entity.name] = {}
     eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_id.name] = {}
@@ -284,11 +277,10 @@ def addFileCopyEvent(mdr, evtTyp, srcFilePath, dstFilePath):
     eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name][globalvars.labels.evt_lnk_agnt_id_typ.name] = globalvars.LNK_AGNT_ID_TYPE
     eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name][globalvars.labels.evt_lnk_agnt_id_val.name] = globalvars.LNK_AGNT_ID_VAL
 
-    mdr[globalvars.labels.pres_entity.name][globalvars.labels.evt_parent_entity.name].append(eventRecord)
-    return mdr
+    return eventRecord
 
 
-def addFilenameChangeEvent(mdr, dstFilePrelimPath, dstFileUniquePath):
+def createFilenameChangeEvent(dstFilePrelimPath, dstFileUniquePath):
     eventRecord = {}
     eventRecord[globalvars.labels.evt_entity.name] = {}
     eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_id.name] = {}
@@ -312,11 +304,10 @@ def addFilenameChangeEvent(mdr, dstFilePrelimPath, dstFileUniquePath):
     eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name][globalvars.labels.evt_lnk_agnt_id_typ.name] = globalvars.LNK_AGNT_ID_TYPE
     eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name][globalvars.labels.evt_lnk_agnt_id_val.name] = globalvars.LNK_AGNT_ID_VAL
 
-    mdr[globalvars.labels.pres_entity.name][globalvars.labels.evt_parent_entity.name].append(eventRecord)
-    return mdr
+    return eventRecord
 
 
-def addFixityCheckEvent(mdr, success, calcChecksum):
+def createFixityCheckEvent(status, calcChecksum):
     eventRecord = {}
     eventRecord[globalvars.labels.evt_entity.name] = {}
     eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_id.name] = {}
@@ -339,11 +330,10 @@ def addFixityCheckEvent(mdr, success, calcChecksum):
     eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name][globalvars.labels.evt_lnk_agnt_id_typ.name] = globalvars.LNK_AGNT_ID_TYPE
     eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name][globalvars.labels.evt_lnk_agnt_id_val.name] = globalvars.LNK_AGNT_ID_VAL
 
-    mdr[globalvars.labels.pres_entity.name][globalvars.labels.evt_parent_entity.name].append(eventRecord)
-    return mdr
+    return eventRecord
 
 
-def addAccessionEvent(mdr):
+def createAccessionEvent():
     eventRecord = {}
     eventRecord[globalvars.labels.evt_entity.name] = {}
     eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_id.name] = {}
@@ -355,19 +345,18 @@ def addAccessionEvent(mdr):
     eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_outcm_info.name] = {}
     eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_outcm_info.name][globalvars.labels.evt_outcm.name] = globalvars.vocab.evtOutcm.success
     #eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_outcm_info.name][globalvars.labels.evt_outcm_detail.name] = {}
-    #objectIdVal = mdr[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_id.name][globalvars.labels.obj_id_val.name]
+    #objectIdVal = metadataRecord[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_id.name][globalvars.labels.obj_id_val.name]
     #eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_outcm_info.name][globalvars.labels.evt_outcm_detail.name][globalvars.labels.evt_outcm_detail_note.name] = "Object with ID '{}' successfully included in the database".format(objectIdVal)
 
     eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name] = {}
     eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name][globalvars.labels.evt_lnk_agnt_id_typ.name] = globalvars.LNK_AGNT_ID_TYPE
     eventRecord[globalvars.labels.evt_entity.name][globalvars.labels.evt_lnk_agnt_id.name][globalvars.labels.evt_lnk_agnt_id_val.name] = globalvars.LNK_AGNT_ID_VAL
 
-    mdr[globalvars.labels.pres_entity.name][globalvars.labels.evt_parent_entity.name].append(eventRecord)
-    return mdr
+    return eventRecord
 
-def updateSerialNumber(mdr, serialNbr):
-    mdr[globalvars.labels.admn_entity.name][globalvars.labels.arrangement.name][globalvars.labels.serial_nbr.name] = serialNbr
-    return mdr
+def updateSerialNumber(metadataRecord, serialNbr):
+    metadataRecord[globalvars.labels.admn_entity.name][globalvars.labels.arrangement.name][globalvars.labels.serial_nbr.name] = serialNbr
+    return metadataRecord
 
 
 

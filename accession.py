@@ -193,7 +193,6 @@ def main():
     {}".format(errorsCSVFileName))
 
 
-
 def transferFiles(src, dst, arrangementInfo):
     """transferFiles(): Carries out the actual transfer of files.
     
@@ -230,8 +229,7 @@ def transferFiles(src, dst, arrangementInfo):
                               # directories required.
         except os.error as osError:
             print_error(osError)
-            print_error("cannot create destination directory {}. \
-                Skipping to next transfer.")
+            print_error("cannot create destination directory {}. Skipping to next transfer.")
             globalvars.errorList.append(row + [str(osError)])
             exit(errorcodes.ERROR_CANNOT_CREATE_DESTINATION_DIRECTORY)
 
@@ -273,10 +271,14 @@ def transferFiles(src, dst, arrangementInfo):
             recordParams["fmtName"] = getFileFormatName(srcFileName)
             recordParams["fmtVer"] = getFileFormatVersion(srcFileName)
             recordParams[globalvars.ARRANGEMENT_INFO_LABEL] = arrangementInfo
+
             metadataRecord = initMetadataRecord(recordParams)
 
             # Extract the unique id from the just-initialized record
             uniqueId = metadataRecord["_id"]
+
+            idAssignmentEvent = createIDAssignmentEvent(uniqueId)
+            metadataRecord[globalvars.labels.pres_entity.name][globalvars.labels.evt_parent_entity.name].append(idAssignmentEvent)
 
             # Create the unique destination file path using the dst (destination
             # directory), and the uniqueId generated using ObjectId()
@@ -289,7 +291,12 @@ def transferFiles(src, dst, arrangementInfo):
             # or moved to the destination directory
             srcChecksum = getFileChecksum(fileName)
 
-            metadataRecord = addMsgDigestCalcEvent(metadataRecord, srcChecksum, globalvars.CHECKSUM_ALGO)
+            msgDigestCalcEvent = createMsgDigestCalcEvent(srcChecksum, globalvars.CHECKSUM_ALGO)
+            metadataRecord[globalvars.labels.pres_entity.name][globalvars.labels.evt_parent_entity.name].append(msgDigestCalcEvent)
+            # Record the checksum, and the checksum algorithm in the 'object' entity
+            metadataRecord[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fixity.name][globalvars.labels.obj_msgdgst_algo.name] = globalvars.CHECKSUM_ALGO
+            metadataRecord[globalvars.labels.pres_entity.name][globalvars.labels.obj_entity.name][globalvars.labels.obj_chars.name][globalvars.labels.obj_fixity.name][globalvars.labels.obj_msgdgst.name] = srcChecksum
+
 
             # To be conservative about the transfers, this script implements the move operation as:
             # 1. COPY the file from source to destination.
@@ -305,11 +312,14 @@ def transferFiles(src, dst, arrangementInfo):
                 eventType = "migration"
             else:
                 eventType = "replication"
-            metadataRecord = addFileCopyEvent(metadataRecord, eventType, fileName, dstFilePrelimPath)
+
+            fileCopyEvent = createFileCopyEvent(eventType, fileName, dstFilePrelimPath)
+            metadataRecord[globalvars.labels.pres_entity.name][globalvars.labels.evt_parent_entity.name].append(fileCopyEvent)
 
             # Rename the destination file
             os.rename(dstFilePrelimPath, dstFileUniquePath)
-            metadataRecord = addFilenameChangeEvent(metadataRecord, dstFilePrelimPath, dstFileUniquePath)
+            filenameChangeEvent = createFilenameChangeEvent(dstFilePrelimPath, dstFileUniquePath)
+            metadataRecord[globalvars.labels.pres_entity.name][globalvars.labels.evt_parent_entity.name].append(filenameChangeEvent)
 
             # Calculate the checksum for the file once copied to the destination.
             dstChecksum = getFileChecksum(dstFileUniquePath)
@@ -335,11 +345,13 @@ def transferFiles(src, dst, arrangementInfo):
                 returnData['comment'] = "Checksum mismatch for '{}', and '{}'. Aborted transfers for remaining files in directory.".format(fileName, dstFileUniquePath)
                 return returnData  # Something went wrong, return False
             else:
-                metadataRecord = addFixityCheckEvent(metadataRecord, True, dstChecksum)
+                fixityCheckEvent = createFixityCheckEvent(True, dstChecksum)
+                metadataRecord[globalvars.labels.pres_entity.name][globalvars.labels.evt_parent_entity.name].append(fixityCheckEvent)
 
                 metadataRecord = updateSerialNumber(metadataRecord, currentSerialNo)
 
-                metadataRecord = addAccessionEvent(metadataRecord)
+                accessionEvent = createAccessionEvent()
+                metadataRecord[globalvars.labels.pres_entity.name][globalvars.labels.evt_parent_entity.name].append(accessionEvent)
                 # Insert the record into the DB first, and THEN copy/move the file.
                 dbRetValue = insertRecordInDB(metadataRecord)
 
