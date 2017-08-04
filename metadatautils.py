@@ -131,7 +131,6 @@ def updateSerialNumber(metadataRecord, serialNbr):
     return metadataRecord
 
 
-
 def print_info(*args):
     """print_info(): Prints informational messages on stdout
 
