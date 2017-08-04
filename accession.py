@@ -42,8 +42,9 @@ import shutil
 
 import globalvars
 import errorcodes
-from utilfunctions import *
+from metadatautils import *
 from dbfunctions import *
+from premis import *
 
 def main():
     argParser = defineCommandLineOptions()

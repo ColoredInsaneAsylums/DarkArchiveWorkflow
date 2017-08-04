@@ -20,7 +20,6 @@ minNumCols = 2  # The minimum no. of columns that should be present in each row
 
 
 # DATABASE VARIABLES
-DBNAME = "cshdb" # TODO: Move this to a config file, along with other db stuff
 dbHandle = None # Stores the handle to access the database. Initialized to None.
 dbCollection = None
 

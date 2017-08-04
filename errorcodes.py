@@ -2,7 +2,7 @@ import globalvars
 
 # ERROR CODES
 ERROR_INVALID_ARGUMENT_STRING = {"code": "e01", "message": "Invalid (number of) arguments specified on the command-line."}
-ERROR_CANNOT_OPEN_CSV_FILE = {"code": "e02", "message": "Cannot open the CSV batch file '{}'.".format(globalvars.csfFile)}
+ERROR_CANNOT_OPEN_CSV_FILE = {"code": "e02", "message": "Cannot open the CSV batch file '{}'.".format(globalvars.csvFile)}
 ERROR_CANNOT_WRITE_CSV_FILE = {"code": "e03", "message": "Could not write CSV file for errors encountered during transfers."}
 ERROR_CANNOT_READ_DBCONF_FILE = {"code": "e04", "message": "Cannot read the DB configuration file."}
 ERROR_INVALID_HEADER_ROW = {"code": "e05", "message": "The header in the input CSV file is invalid."}
