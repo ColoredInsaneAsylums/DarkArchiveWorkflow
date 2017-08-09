@@ -4,6 +4,8 @@ import pymongo
 import globalvars
 import errorcodes
 
+dbConfFileName = "../config/dbconf.json"
+
 def init_db():
     """init_db():
 
@@ -15,7 +17,7 @@ def init_db():
     """
     
     try:
-        dbConfigJson = open("dbconf.json", "r").read()
+        dbConfigJson = open(dbConfFileName, "r").read()
     except IOError as exception:
         print_error(exception)
         print_error(errorcodes.ERROR_CANNOT_READ_DBCONF_FILE["message"])

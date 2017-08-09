@@ -40,6 +40,9 @@ import os
 import glob
 import shutil
 
+sys.path.append("../lib/")
+sys.path.append("./lib/")
+
 import globalvars
 import errorcodes
 from metadatautils import *
