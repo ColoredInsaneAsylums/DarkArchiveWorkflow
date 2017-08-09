@@ -1,5 +1,6 @@
 import globalvars
 from metadatautils import *
+from adminmetadatautils import *
 
 # FUNCTION DEFINITIONS 
 
@@ -29,20 +30,10 @@ def initMetadataRecord(initParams):
     metadataRecord["_id"] = uniqueId
 
     # Create the ADMIN entity here:
-    metadataRecord[globalvars.labels.admn_entity.name] = {}
-    metadataRecord[globalvars.labels.admn_entity.name][globalvars.labels.arrangement.name] = {}
+    arrangementInfo = initParams[globalvars.ARRANGEMENT_INFO_LABEL]
+    adminEntity = initAdminMetadataEntity(arrangementInfo)
 
-    # Remove empty fields from the Arrangement dictionary
-    arrangementFields = []
-    for key, value in iter(initParams[globalvars.ARRANGEMENT_INFO_LABEL].items()):
-        if value == "":
-            arrangementFields.append(key)
-
-    for key in arrangementFields:
-        initParams[globalvars.ARRANGEMENT_INFO_LABEL].pop(key)
-
-    metadataRecord[globalvars.labels.admn_entity.name][globalvars.labels.arrangement.name].update(initParams[globalvars.ARRANGEMENT_INFO_LABEL])
-    metadataRecord[globalvars.labels.admn_entity.name][globalvars.labels.arrangement.name][globalvars.labels.serial_nbr.name] = globalvars.MD_INIT_STRING
+    metadataRecord[globalvars.labels.admn_entity.name] = adminEntity
 
     # Create the PREMIS (or preservation) entity here:
     metadataRecord[globalvars.labels.pres_entity.name] = {}

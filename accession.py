@@ -45,6 +45,7 @@ import errorcodes
 from metadatautils import *
 from dbfunctions import *
 from premis import *
+from adminmetadatautils import *
 
 def main():
     argParser = defineCommandLineOptions()

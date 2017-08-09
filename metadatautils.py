@@ -126,11 +126,6 @@ def isHeaderValid(hdr):
         return False
 
 
-def updateSerialNumber(metadataRecord, serialNbr):
-    metadataRecord[globalvars.labels.admn_entity.name][globalvars.labels.arrangement.name][globalvars.labels.serial_nbr.name] = serialNbr
-    return metadataRecord
-
-
 def print_info(*args):
     """print_info(): Prints informational messages on stdout
 
