@@ -1,3 +1,39 @@
+# -*- coding: utf-8 -*-
+
+# BSD 3-Clause License
+# 
+# Copyright (c) 2017, ColoredInsaneAsylums
+# All rights reserved.
+# 
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+# 
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+# 
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+# 
+# * Neither the name of the copyright holder nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+# 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# CREDITS
+# Creator: Nitin Verma (nitin dot verma at utexas dot edu)
+# 
+
 import json
 import pymongo
 
@@ -52,18 +88,18 @@ def init_db():
     return dbParamsDict
 
 
-def insertRecordInDB(mdr):
+def insertRecordInDB(metadataRecord):
     """insertRecordInDB
 
     Arguments:
-        mdr: the metadata record to be inserted
+        metadataRecord: the metadata record to be inserted
 
     This function creates a database entry pertaining to the file being transferred.
     
     """
 
     try:
-        dbInsertResult = globalvars.dbHandle[globalvars.dbCollection].insert_one(mdr)
+        dbInsertResult = globalvars.dbHandle[globalvars.dbCollection].insert_one(metadataRecord)
     except pymongo.errors.PyMongoError as ExceptionPyMongoError:
         print_error(ExceptionPyMongoError)
         print_error(errorcodes.ERROR_CANNOT_INSERT_INTO_DB["message"])
@@ -72,7 +108,16 @@ def insertRecordInDB(mdr):
     return(str(dbInsertResult.inserted_id))
 
 
-def DeleteRecordFromDB(id):
+def deleteRecordFromDB(id):
+    """deleteRecordFromDB
+
+    Arguments:
+        id: id of the metadata record to be deleted
+
+    This function deletes a database entry corresponding to the id specified.
+
+    """
+
     retVal = globalvars.dbHandle[globalvars.dbCollection].delete_one({'_id': id})
     
     if retVal.deleted_count != 1:
@@ -81,6 +126,16 @@ def DeleteRecordFromDB(id):
 
 
 def getHighestSerialNo(dirName):
+    """getHighestSerialNo
+
+    Arguments:
+        dirName: the directory/path that needs to be looked up in the database.
+
+    This function finds the highest serial number corresponding to the specified dirName.
+    dirName is expected to match one of the fields called "originalName" in the PREMIS entity.
+    
+    """
+
     queryField = ".".join([globalvars.labels.pres_entity.name, globalvars.labels.obj_entity.name, globalvars.labels.obj_orig_name.name])
     serialNoLabel = ".".join([globalvars.labels.admn_entity.name, globalvars.labels.arrangement.name, globalvars.labels.serial_nbr.name])
     records = globalvars.dbHandle[globalvars.dbCollection].find({queryField: {"$regex": dirName}}, {"_id": 0, serialNoLabel: 1})

@@ -29,10 +29,15 @@
 # CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# DETAILS:
+# File Name: accession.py
+# Description: This file contains source code for the core functionality of the 
+#              archival accessioning workflow.
+#
+# Creator: Nitin Verma (nitin dot verma at utexas dot edu)
+#
 
-# CREDITS
-# Creator: Nitin Verma
-# 
 # IMPORT NEEDED MODULES
 import csv
 import sys
@@ -40,6 +45,9 @@ import os
 import glob
 import shutil
 
+# Append the following paths to PYTHONPATH environment variable so that the 
+# Python interpreter is able to find the requested modules kept in the lib 
+# directory.
 sys.path.append("../lib/")
 sys.path.append("./lib/")
 
@@ -57,8 +65,7 @@ def main():
     print_info("Extension: {}".format(globalvars.ext))
 
     if globalvars.move == True:
-        print_info("'move' option selected\nCAUTION: Files will be moved rather \
-    than copied")
+        print_info("'move' option selected\nCAUTION: Files will be moved rather than copied")
 
     print_info("quiet mode: ", globalvars.quietMode)
 
@@ -168,9 +175,7 @@ def main():
 
     # WRITE ALL ROWS THAT COULD NOT BE PROCESSED TO A CSV FILE
     if len(globalvars.errorList) > 1:  # Because at least the header row will always be there!
-        errorsCSVFileName = ("transfer_errors_" + strftime("%Y-%m-%d_%H%M%S", 
-                                                        localtime(time()))
-                            + ".csv")
+        errorsCSVFileName = ("transfer_errors_" + strftime("%Y-%m-%d_%H%M%S", localtime(time())) + ".csv")
 
         try:
             errorsCSVFileHandle = open(errorsCSVFileName, 'w')
@@ -179,16 +184,13 @@ def main():
             print_error(errorcodes.ERROR_CANNOT_WRITE_CSV_FILE["message"])
             exit (errorcodes.ERROR_CANNOT_WRITE_CSV_FILE["code"])
 
-        csvWriter = csv.writer(errorsCSVFileHandle, delimiter=',', quotechar='"',
-                            lineterminator='\n')
+        csvWriter = csv.writer(errorsCSVFileHandle, delimiter=',', quotechar='"', lineterminator='\n')
 
         for row in globalvars.errorList:
             csvWriter.writerow(row)
 
         errorsCSVFileHandle.close()
-        print_error("Not all transfers were successful. A record of rows for which \
-    errors were encountered has been written to the following file: \
-    {}".format(errorsCSVFileName))
+        print_error("Not all transfers were successful. A record of rows for which errors were encountered has been written to the following file: {}".format(errorsCSVFileName))
 
 
 def transferFiles(src, dst, arrangementInfo):
@@ -338,7 +340,7 @@ def transferFiles(src, dst, arrangementInfo):
                     exit(errorcodes.ERROR_CANNOT_REMOVE_FILE["code"])
 
                 # Remove entry from DB if present
-                DeleteRecordFromDB(uniqueId)
+                deleteRecordFromDB(uniqueId)
 
                 returnData['status'] = False
                 returnData['comment'] = "Checksum mismatch for '{}', and '{}'. Aborted transfers for remaining files in directory.".format(fileName, dstFileUniquePath)
