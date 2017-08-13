@@ -45,18 +45,13 @@ import os
 import glob
 import shutil
 
-# Append the following paths to PYTHONPATH environment variable so that the 
-# Python interpreter is able to find the requested modules kept in the lib 
-# directory.
-sys.path.append("../lib/")
-sys.path.append("./lib/")
+import metadatautilspkg.globalvars as globalvars
+import metadatautilspkg.errorcodes as errorcodes
+from metadatautilspkg.metadatautils import *
+from metadatautilspkg.dbfunctions import *
+from metadatautilspkg.premis import *
+from metadatautilspkg.adminmetadatautils import *
 
-import globalvars
-import errorcodes
-from metadatautils import *
-from dbfunctions import *
-from premis import *
-from adminmetadatautils import *
 
 def main():
     argParser = defineCommandLineOptions()

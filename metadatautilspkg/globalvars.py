@@ -60,11 +60,11 @@ dbHandle = None # Stores the handle to access the database. Initialized to None.
 dbCollection = None
 
 # LABEL DICTIONARIES
-labelsFileName = "../config/labels.json"
+labelsFileName = "config/labels.json"
 labels = {}
 
 # CONTROLLED VOCABULARY
-vocabFileName = "../config/vocab.json"
+vocabFileName = "config/vocab.json"
 vocab = {}
 
 # CSV FILE RELATED CONSTANTS

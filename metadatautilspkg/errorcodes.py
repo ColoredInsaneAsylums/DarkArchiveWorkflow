@@ -34,7 +34,7 @@
 # Creator: Nitin Verma (nitin dot verma at utexas dot edu)
 # 
 
-import globalvars
+import metadatautilspkg.globalvars as globalvars
 
 # ERROR CODES
 ERROR_INVALID_ARGUMENT_STRING = {"code": "e01", "message": "Invalid (number of) arguments specified on the command-line."}

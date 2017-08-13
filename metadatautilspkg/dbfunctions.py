@@ -37,10 +37,10 @@
 import json
 import pymongo
 
-import globalvars
-import errorcodes
+import metadatautilspkg.globalvars as globalvars
+import metadatautilspkg.errorcodes as errorcodes
 
-dbConfFileName = "../config/dbconf.json"
+dbConfFileName = "config/dbconf.json"
 
 def init_db():
     """init_db():

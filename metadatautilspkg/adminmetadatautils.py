@@ -34,7 +34,7 @@
 # Creator: Nitin Verma (nitin dot verma at utexas dot edu)
 # 
 
-import globalvars
+import metadatautilspkg.globalvars as globalvars
 
 
 def initAdminMetadataEntity(arrangementInfo):

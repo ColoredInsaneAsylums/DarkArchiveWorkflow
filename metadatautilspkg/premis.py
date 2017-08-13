@@ -34,9 +34,9 @@
 # Creator: Nitin Verma (nitin dot verma at utexas dot edu)
 # 
 
-import globalvars
-from metadatautils import *
-from adminmetadatautils import *
+import metadatautilspkg.globalvars as globalvars
+from metadatautilspkg.metadatautils import *
+from metadatautilspkg.adminmetadatautils import *
 
 # FUNCTION DEFINITIONS 
 

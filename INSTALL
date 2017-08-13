@@ -1,0 +1,8 @@
+#!/bin/bash
+VERSION=0.1
+PACKAGE_ARCHIVE="dist/metadatautilspkg-$VERSION"".tar.gz"
+PACKAGE_DIR="metadatautilspkg-$VERSION"
+
+tar -xvf $PACKAGE_ARCHIVE
+cd $PACKAGE_DIR
+python3 setup.py install

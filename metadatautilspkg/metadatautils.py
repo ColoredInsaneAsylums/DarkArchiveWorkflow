@@ -43,8 +43,8 @@ import json
 from collections import namedtuple
 from uuid import uuid4
 
-import globalvars
-import errorcodes
+import metadatautilspkg.globalvars as globalvars
+import metadatautilspkg.errorcodes as errorcodes
 
 def defineCommandLineOptions():
     #PARSE AND VALIDATE COMMAND-LINE OPTIONS
