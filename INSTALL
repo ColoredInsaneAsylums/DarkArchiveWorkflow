@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION=0.1
+VERSION=`cat PACKAGE_VERSION`
 PACKAGE_ARCHIVE="dist/metadatautilspkg-$VERSION"".tar.gz"
 PACKAGE_DIR="metadatautilspkg-$VERSION"
 
