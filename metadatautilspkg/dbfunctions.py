@@ -36,11 +36,14 @@
 
 import json
 import pymongo
+import os
 
 import metadatautilspkg.globalvars as globalvars
 import metadatautilspkg.errorcodes as errorcodes
+from metadatautilspkg.metadatautils import *
 
-dbConfFileName = "config/dbconf.json"
+
+dbConfFileName = os.path.join(globalvars.configDir, "dbconf.json")
 
 def init_db():
     """init_db():

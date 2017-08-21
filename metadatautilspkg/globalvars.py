@@ -35,6 +35,7 @@
 # 
 
 import sys
+import os
 
 # DECLARE GLOBALS AND THEIR DEFAULT VALUES
 ext = "*"  # Extension, with a default value of *
@@ -59,12 +60,14 @@ minNumCols = 2  # The minimum no. of columns that should be present in each row
 dbHandle = None # Stores the handle to access the database. Initialized to None.
 dbCollection = None
 
+configDir = "/usr/share/darkarchive"
+
 # LABEL DICTIONARIES
-labelsFileName = "config/labels.json"
+labelsFileName = os.path.join(configDir, "labels.json")
 labels = {}
 
 # CONTROLLED VOCABULARY
-vocabFileName = "config/vocab.json"
+vocabFileName = os.path.join(configDir, "vocab.json")
 vocab = {}
 
 # CSV FILE RELATED CONSTANTS

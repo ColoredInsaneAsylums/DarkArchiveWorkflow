@@ -2,7 +2,16 @@
 VERSION=`cat PACKAGE_VERSION`
 PACKAGE_ARCHIVE="dist/metadatautilspkg-$VERSION"".tar.gz"
 PACKAGE_DIR="metadatautilspkg-$VERSION"
+CONFIG_DIR="/usr/share/darkarchive/"
 
 tar -xvf $PACKAGE_ARCHIVE
+cp PACKAGE_VERSION $PACKAGE_DIR
 cd $PACKAGE_DIR
 python3 setup.py install
+
+cd ..
+
+rm -rf $PACKAGE_DIR
+
+mkdir -p $CONFIG_DIR
+cp config/*.json $CONFIG_DIR

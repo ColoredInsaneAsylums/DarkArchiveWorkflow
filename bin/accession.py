@@ -87,9 +87,10 @@ def main():
             print_error(errorcodes.ERROR_INVALID_HEADER_ROW["message"])
             exit(errorcodes.ERROR_INVALID_HEADER_ROW["code"])
 
-        # Extract Arrange info from header row
+        # Extract Arrangement info from header row
         numArrangementInfoCols = 0
         arrangementInfoTags = {}
+
         for col in firstRow:
             if col.startswith(globalvars.ARRANGEMENT_INFO_MARKER):
                 numArrangementInfoCols += 1
