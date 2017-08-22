@@ -189,6 +189,45 @@ def main():
         print_error("Not all transfers were successful. A record of rows for which errors were encountered has been written to the following file: {}".format(errorsCSVFileName))
 
 
+def defineCommandLineOptions():
+    #PARSE AND VALIDATE COMMAND-LINE OPTIONS
+    argParser = argparse.ArgumentParser(description="Migrate Files for Preservation")
+    argParser.add_argument('-e', '--extension', nargs=1, default='*', help='Specify file EXTENSION for files that need to be migrated.')
+    #argParser.add_argument('srcDstPair', nargs='*', metavar='SRC DST', help='Migrate files from SRC to DST. DST will be created if it does not exist. These arguments will be ignored if the -f option is specified.')
+    argParser.add_argument('-f', '--file', nargs=1, default=False, metavar='CSVPATH', help='CSVPATH is the path to the CSV file to be used with the -f option.')
+    argParser.add_argument('-q', '--quiet', action='store_true', help='Enable this option to suppress all logging, except critical error messages.')
+    argParser.add_argument('-m', '--move', action='store_true', help='Enable this option to move the files instead of copying them.')
+
+    return argParser
+
+def parseCommandLineArgs(argParser, args):
+    parsedArgs = argParser.parse_args(args)
+
+    if len(args) == 0:
+        print_error(errorcodes.ERROR_INVALID_ARGUMENT_STRING["message"])
+        argParser.print_help()
+        exit(errorcodes.ERROR_INVALID_ARGUMENT_STRING["code"])
+
+    globalvars.ext = parsedArgs.extension[0]
+    globalvars.quietMode = parsedArgs.quiet
+    globalvars.move = parsedArgs.move
+
+    if parsedArgs.file:
+        globalvars.batchMode = True
+        globalvars.csvFile = parsedArgs.file[0]
+    else:
+        globalvars.batchMode = False
+        if len(parsedArgs.srcDstPair) != 2:
+            src = parsedArgs.srcDstPair[0]
+            dst = parsedArgs.srcDstPair[1]
+            globalvars.transferList.append([src, dst])
+        else:
+            print_error(errorcodes.ERROR_INVALID_ARGUMENT_STRING["message"])
+            argParser.print_help()
+            exit(errorcodes.ERROR_INVALID_ARGUMENT_STRING["code"])
+
+
+
 def transferFiles(src, dst, arrangementInfo):
     """transferFiles(): Carries out the actual transfer of files.
     
