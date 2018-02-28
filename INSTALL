@@ -2,7 +2,6 @@
 VERSION=`cat PACKAGE_VERSION`
 PACKAGE_ARCHIVE="dist/metadatautilspkg-$VERSION"".tar.gz"
 PACKAGE_DIR="metadatautilspkg-$VERSION"
-CONFIG_DIR="/usr/share/darkarchive/"
 
 tar -xvf $PACKAGE_ARCHIVE
 cp PACKAGE_VERSION $PACKAGE_DIR
@@ -13,5 +12,6 @@ cd ..
 
 rm -rf $PACKAGE_DIR
 
-mkdir -p $CONFIG_DIR
-cp config/*.json $CONFIG_DIR
+# changes made for issue # 7
+cp config/dbconf-template.json config/dbconf.json
+echo Please add your DB connection credentials in the file "dbconf.json".

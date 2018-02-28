@@ -60,7 +60,8 @@ minNumCols = 2  # The minimum no. of columns that should be present in each row
 dbHandle = None # Stores the handle to access the database. Initialized to None.
 dbCollection = None
 
-configDir = "/usr/share/darkarchive"
+# changes for issue # 7
+configDir = "config"
 
 # LABEL DICTIONARIES
 labelsFileName = os.path.join(configDir, "labels.json")
