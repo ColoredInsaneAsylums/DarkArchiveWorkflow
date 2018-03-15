@@ -145,7 +145,9 @@ def getHighestSerialNo(dirName):
     records = [record for record in records]
 
     if len(records) == 0:
-        return 1
+        # code changes to copy all the files from source to destination
+		# return 1
+		return 0
     else:
         serialNos = [int(record[globalvars.labels.admn_entity.name][globalvars.labels.arrangement.name][globalvars.labels.serial_nbr.name]) for record in records]
         return max(serialNos)
