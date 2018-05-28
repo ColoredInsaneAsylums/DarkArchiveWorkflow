@@ -32,6 +32,7 @@
 
 # CREDITS
 # Creator: Nitin Verma (nitin dot verma at utexas dot edu)
+# Update: Milind Siddhanti (milindsiddhanti at utexas dot edu)
 # 
 
 import sys
@@ -51,6 +52,9 @@ errorList = []  # List of source-dest pairs for which
                                          # errors were encountered during
                                          # processing. Is a subset of 
                                          # transferList.
+
+technicalList = [] # List of filepaths to be processed.
+technicalErrorList = [] # Consists list of errors encountered during the extraction of technical properties.
 
 minNumCols = 2  # The minimum no. of columns that should be present in each row
                 # of the CSV file. Determined by the header row.
@@ -74,6 +78,7 @@ vocab = {}
 # CSV FILE RELATED CONSTANTS
 CSV_COL_1_NAME = "source"
 CSV_COL_2_NAME = "destination"
+CSV_TECH_COL_1_NAME = "filepath"
 
 # METADATA-RELATED CONSTANTS
 OBJ_ID_TYPE = "UUID"

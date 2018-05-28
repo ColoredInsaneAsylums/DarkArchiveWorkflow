@@ -32,6 +32,7 @@
 
 # CREDITS
 # Creator: Nitin Verma (nitin dot verma at utexas dot edu)
+# Update: Milind Siddhanti (milindsiddhanti at utexas dot edu)
 # 
 
 import metadatautilspkg.globalvars as globalvars
@@ -52,4 +53,8 @@ ERROR_INVALID_JSON_IN_LABELS_FILE = {"code": "e12", "message": "The file '{}' is
 ERROR_CANNOT_READ_VOCAB_FILE = {"code": "e13", "message": "Cannot read the vocab file '{}'.".format(globalvars.vocabFileName)}
 ERROR_INVALID_JSON_IN_VOCAB_FILE = {"code": "e14", "message": "The file '{}' is not a valid JSON file. Please check the file for formatting errors.".format(globalvars.vocabFileName)}
 ERROR_CANNOT_CREATE_DESTINATION_DIRECTORY = {"code": "e15", "message": "Cannot create destination directory '{}'. Skipping to next transfer."}
-
+ERROR_CANNOT_FIND_DIRECTORY = {"code": "e16", "message": "Cannot find the filepath directory. '{}'."}
+ERROR_CANNOT_FIND_DOCUMENT = {"code": "e17", "message": "Document not found in the database. '{}'."}
+ERROR_CANNOT_FILE_EXTENSION = {"code": "e18", "message": "File Extension does not match. '{}'."}
+ERROR_INSTALL_IMAGEMAGICK = {"code": "e19", "message": "Image Magick is not installed '{}'."}
+ERROR_CANNOT_UPDATE_DB = {"code": "e20", "message": "Updation of the record failed."}

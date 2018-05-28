@@ -32,6 +32,7 @@
 
 # CREDITS
 # Creator: Nitin Verma (nitin dot verma at utexas dot edu)
+# Update: Milind Siddhanti (milindsiddhanti at utexas dot edu)
 #
 
 import json
@@ -110,6 +111,25 @@ def insertRecordInDB(metadataRecord):
 
     return(str(dbInsertResult.inserted_id))
 
+def updateRecordInDB(id, metadataRecord):
+    """updateRecordInDB
+
+    Arguments:
+        id: id of the metadata record to be updated
+        metadataRecord: the metadata record to be inserted to the existing record
+
+    This function updates a database entry pertaining to the file transferred.
+
+    """
+
+    try:
+        dbUpdateResult = globalvars.dbHandle[globalvars.dbCollection].update_one({'_id' : id}, {'$set' : metadataRecord})
+    except pymongo.errors.PyMongoError as ExceptionPyMongoError:
+        print_error(ExceptionPyMongoError)
+        print_error(errorcodes.ERROR_CANNOT_UPDATE_DB["message"])
+        return(errorcodes.ERROR_CANNOT_UPDATE_DB["code"])
+
+    return(str(dbUpdateResult.upserted_id))
 
 def deleteRecordFromDB(id):
     """deleteRecordFromDB

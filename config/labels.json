@@ -53,5 +53,35 @@
     "evt_lnk_agnt_id": {"name": "linkingAgentIdentifier", "oblg": "O", "rpt": "NR"},
     "evt_lnk_agnt_id_typ": {"name": "linkingAgentIdentifierType", "oblg": "M", "rpt": "NR"},
     "evt_lnk_agnt_id_val": {"name": "linkingAgentIdentifierValue", "oblg": "M", "rpt": "NR"},
-    "evt_lnk_agnt_id_role": {"name": "linkingAgentIdentifierRole", "oblg": "O", "rpt": "NR"}
+    "evt_lnk_agnt_id_role": {"name": "linkingAgentIdentifierRole", "oblg": "O", "rpt": "NR"},
+
+    "tech_entity": {"name": "technical", "oblg": "M", "rpt": "NR"},
+
+    "img_entity": {"name": "image", "oblg": "M", "rpt": "NR"},
+    "img_width": {"name": "width", "oblg": "O", "rpt": "NR"},
+    "img_length": {"name": "length", "oblg": "O", "rpt": "NR"},
+    "img_bitsPerSample": {"name": "bitsPerSample", "oblg": "O", "rpt": "NR"},
+    "img_compression": {"name": "compression", "oblg": "O", "rpt": "NR"},
+    "img_samplesPerPixel": {"name": "samplesPerPixel", "oblg": "O", "rpt": "NR"},
+    "img_photometricInterpretation": {"name": "photometricInterpretation", "oblg": "O", "rpt": "NR"},
+    "img_xResolution": {"name": "xResolution", "oblg": "O", "rpt": "NR"},
+    "img_yResolution": {"name": "yResolution", "oblg": "O", "rpt": "NR"},
+    "img_resolutionUnit": {"name": "resolutionUnit", "oblg": "O", "rpt": "NR"},
+    "img_colorSpace": {"name": "colorSpace", "oblg": "O", "rpt": "NR"},
+    "img_extraSamples": {"name": "extraSamples", "oblg": "O", "rpt": "NR"},
+    "img_borderColor": {"name": "borderColor", "oblg": "O", "rpt": "NR"},
+    "img_backgroundColor": {"name": "backgroundColor", "oblg": "O", "rpt": "NR"},
+    "img_matteColor": {"name": "matteColor", "oblg": "O", "rpt": "NR"},
+    "img_transparentColor": {"name": "transparentColor", "oblg": "O", "rpt": "NR"},
+
+    "scan_entity": {"name": "scanner", "oblg": "M", "rpt": "NR"},
+    "scan_make": {"name": "make", "oblg": "O", "rpt": "NR"},
+    "scan_software": {"name": "software", "oblg": "O", "rpt": "NR"},
+    "scan_model": {"name": "model", "oblg": "O", "rpt": "NR"},
+
+    "tech_scanDateTime": {"name": "scanDateTime", "oblg": "O", "rpt": "NR"},
+    "tech_rowsPerStrip": {"name": "rowsPerStrip", "oblg": "O", "rpt": "NR"},
+    "tech_endian": {"name": "endian", "oblg": "O", "rpt": "NR"},
+    "tech_orientation": {"name": "orientation", "oblg": "O", "rpt": "NR"}
+
 }
