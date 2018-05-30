@@ -66,9 +66,8 @@ def main():
             if ': ' in str:
                 imgver.append(str)
             else:
-                ver = ''
-                globalvars.technicalErrorList.append([errorcodes.ERROR_INSTALL_IMAGEMAGICK["message"].format(ver)])
-                print_error(errorcodes.ERROR_INSTALL_IMAGEMAGICK["message"].format(ver))
+                globalvars.technicalErrorList.append([errorcodes.ERROR_INSTALL_IMAGEMAGICK["message"]])
+                print_error(errorcodes.ERROR_INSTALL_IMAGEMAGICK["message"])
                 errorCSV()
                 exit(errorcodes.ERROR_INSTALL_IMAGEMAGICK["code"])
 
@@ -82,14 +81,13 @@ def main():
     if 'Version' in version:
         ver = version['Version']
         if 'ImageMagick' not in ver:
-            globalvars.technicalErrorList.append([errorcodes.ERROR_INSTALL_IMAGEMAGICK["message"].format(ver)])
-            print_error(errorcodes.ERROR_INSTALL_IMAGEMAGICK["message"].format(ver))
+            globalvars.technicalErrorList.append([errorcodes.ERROR_INSTALL_IMAGEMAGICK["message"]])
+            print_error(errorcodes.ERROR_INSTALL_IMAGEMAGICK["message"])
             errorCSV()
             exit(errorcodes.ERROR_INSTALL_IMAGEMAGICK["code"])
     else:
-        ver = ''
-        globalvars.technicalErrorList.append([errorcodes.ERROR_INSTALL_IMAGEMAGICK["message"].format(ver)])
-        print_error(errorcodes.ERROR_INSTALL_IMAGEMAGICK["message"].format(ver))
+        globalvars.technicalErrorList.append([errorcodes.ERROR_INSTALL_IMAGEMAGICK["message"]])
+        print_error(errorcodes.ERROR_INSTALL_IMAGEMAGICK["message"])
         errorCSV()
         exit(errorcodes.ERROR_INSTALL_IMAGEMAGICK["code"])
 
@@ -171,7 +169,7 @@ def main():
 
 def errorCSV():
     # WRITE ALL ROWS THAT COULD NOT BE PROCESSED TO A CSV FILE
-    if len(globalvars.technicalErrorList) > 0:  # Because at least the header row will always be there!
+    if len(globalvars.technicalErrorList) > 0:
         errorsCSVFileName = ("technical_profile_errors_" + strftime("%Y-%m-%d_%H%M%S", localtime(time())) + ".csv")
 
         try:
@@ -207,12 +205,22 @@ def parseCommandLineArgs(argParser, args):
         exit(errorcodes.ERROR_INVALID_ARGUMENT_STRING["code"])
 
     globalvars.ext = parsedArgs.extension[0]
+    if(globalvars.ext == "*"):
+        print_error(errorcodes.ERROR_EXT_ARGUMENT["message"])
+        globalvars.technicalErrorList.append([errorcodes.ERROR_EXT_ARGUMENT["message"]])
+        errorCSV()
+        exit(errorcodes.ERROR_EXT_ARGUMENT["code"])
     globalvars.quietMode = parsedArgs.quiet
     # globalvars.help = parsedArgs.showhelp
 
     if parsedArgs.file:
         globalvars.batchMode = True
         globalvars.csvFile = parsedArgs.file[0]
+    else:
+        print_error(errorcodes.ERROR_FILE_ARGUMENT["message"])
+        globalvars.technicalErrorList.append([errorcodes.ERROR_FILE_ARGUMENT["message"]])
+        errorCSV()
+        exit(errorcodes.ERROR_FILE_ARGUMENT["code"])
 
 def runCmd(cmd):
     """
@@ -242,262 +250,270 @@ def technicalRecord(filePath, technicalFileInfo):
         records = [record for record in records]                                            # store the records retrieved from the database
 
         if(len(records) == 1):
-            
-            seq = (filePath, name)
-            fullPath = os.path.sep.join(seq)
-            # execute the command "identify -verbose <filename>" to fetch image properties.
-            output, error, exitcode = runCmd('identify -verbose ' + fullPath)
-
-            lines = output.decode('utf-8').split('\n')              # read the output from the command
-                                                                    # decode the output in the 'utf-8' format and remove line spoces.
-
-            data = []
-            for str in lines:
-                if ': ' in str:
-                    data.append(str)
-
-            data = [word.replace(':  ',':') for word in data]
-
-            # method to convert the list into dictionary to have key-value pairs.
-            prop = {}
-            for item in data:
-                key, value = item.split(": ")
-                key = key.strip(" ")
-                value = value.strip(" ")
-                prop[key] = value
-
-            # read the required technical properties from the dictionary
-            if 'filename' in prop:
-                technicalFile = re.split(r'[/]', prop['filename'])
-                technicalFileNameExt = technicalFile[-1]
-                technicalFileName = technicalFileNameExt.split(".")[0]
-            else:
-                technicalFileNameExt = ''
-                technicalFileName =  ''
-
-            if 'Geometry' in prop:
-                imageGeometry = re.split(r'[x+]', prop['Geometry'])
-                imageWidth = imageGeometry[0]
-                imageLength = imageGeometry[1]
-            else:
-                imageWidth = ''
-                imageLength = ''
-
-            if 'Depth' in prop:
-                depth = prop['Depth']
-                if '8' in depth:
-                    bitsPerSample = 'GrayScale'
-                elif '24' in depth:
-                    bitsPerSample = '24-bit color'
+            for rec in records:
+                if "technical" in rec:
+                    print_info("The technical properties for the file '{}' has been already updated.".format(fileName))
+                    globalvars.technicalErrorList.extend([errorcodes.ERROR_TECH_UPDATED["message"].format(name)])
+                    errorFlag = True
                 else:
-                    bitsPerSample = ''
-            else:
-                bitsPerSample = ''
+                    seq = (filePath, name)
+                    fullPath = os.path.sep.join(seq)
+                    # execute the command "identify -verbose <filename>" to fetch image properties.
+                    output, error, exitcode = runCmd('identify -verbose ' + fullPath)
 
-            if 'Compression' in prop:
-                compression = prop['Compression']
-                if 'None' not in compression:
-                    compression = 'CCITT group 4'
-            else:
-                compression = ''
+                    lines = output.decode('utf-8').split('\n')              # read the output from the command
+                                                                            # decode the output in the 'utf-8' format and remove line spoces.
 
-            if 'tiff:photometric' in prop:
-                photometricInterpretation = prop['tiff:photometric']
-                if 'RGB' in photometricInterpretation:
-                    samplesPerPixel = '3'
-                elif 'black' in photometricInterpretation:
-                    samplesPerPixel = '1'
-                else:
-                    samplesPerPixel = '4'
-                if (int(samplesPerPixel) > 3):
-                    extraSamples = samplesPerPixel - 3
-                    extraSamplesFlag = True
-                else:
-                    extraSamples = '0'
-                    extraSamplesFlag = True
-            else:
-                photometricInterpretation = ''
-                samplesPerPixel = ''
-                extraSamples = ''
-                extraSamplesFlag = False
+                    data = []
+                    for str in lines:
+                        if ': ' in str:
+                            data.append(str)
 
-            if 'Resolution' in prop:
-                resolution = re.split(r'[x]', prop['Resolution'])
-                xResolution = resolution[0]
-                yResolution = resolution[1]
-            else:
-                xResolution = ''
-                yResolution = ''
+                    data = [word.replace(':  ',':') for word in data]
 
-            if 'Units' in prop:
-                resolutionUnit = prop['Units']
-            else:
-                resolutionUnit = ''
+                    # method to convert the list into dictionary to have key-value pairs.
+                    prop = {}
+                    for item in data:
+                        key, value = item.split(": ")
+                        key = key.strip(" ")
+                        value = value.strip(" ")
+                        prop[key] = value
 
-            if 'Colorspace' in prop:
-                colorSpace = prop['Colorspace']
-            else:
-                colorSpace = ''
+                    # read the required technical properties from the dictionary
+                    if 'filename' in prop:
+                        technicalFile = re.split(r'[/]', prop['filename'])
+                        technicalFileNameExt = technicalFile[-1]
+                        technicalFileName = technicalFileNameExt.split(".")[0]
+                    else:
+                        technicalFileNameExt = ''
+                        technicalFileName =  ''
 
-            if 'Background color' in prop:
-                backgroundColor = prop['Background color']
-                backgroundColorFlag = True
-            else:
-                backgroundColorFlag = False
-                backgroundColor = ''
+                    if 'Geometry' in prop:
+                        imageGeometry = re.split(r'[x+]', prop['Geometry'])
+                        imageWidth = imageGeometry[0]
+                        imageLength = imageGeometry[1]
+                    else:
+                        imageWidth = ''
+                        imageLength = ''
 
-            if 'Border color' in prop:
-                borderColor = prop['Border color']
-                borderColorFlag = True
-            else:
-                borderColor = ''
-                borderColorFlag = False
+                    if 'Depth' in prop:
+                        depth = prop['Depth']
+                        if '8' in depth:
+                            bitsPerSample = 'GrayScale'
+                        elif '24' in depth:
+                            bitsPerSample = '24-bit color'
+                        else:
+                            bitsPerSample = ''
+                    else:
+                        bitsPerSample = ''
 
-            if 'Matte color' in prop:
-                matteColor = prop['Matte color']
-                matteColorFlag = True
-            else:
-                matteColor = ''
-                matteColorFlag = False
+                    if 'Compression' in prop:
+                        compression = prop['Compression']
+                        if 'None' not in compression:
+                            compression = 'CCITT group 4'
+                    else:
+                        compression = ''
 
-            if 'Transparent color' in prop:
-                transparentColor = prop['Transparent color']
-                transparentColorFlag = True
-            else:
-                transparentColor = ''
-                transparentColorFlag = False
+                    if 'tiff:photometric' in prop:
+                        photometricInterpretation = prop['tiff:photometric']
+                        if 'RGB' in photometricInterpretation:
+                            samplesPerPixel = '3'
+                        elif 'black' in photometricInterpretation:
+                            samplesPerPixel = '1'
+                        else:
+                            samplesPerPixel = '4'
+                        if (int(samplesPerPixel) > 3):
+                            extraSamples = samplesPerPixel - 3
+                            extraSamplesFlag = True
+                        else:
+                            extraSamples = '0'
+                            extraSamplesFlag = True
+                    else:
+                        photometricInterpretation = ''
+                        samplesPerPixel = ''
+                        extraSamples = ''
+                        extraSamplesFlag = False
 
-            if 'tiff:rows-per-strip' in prop:
-                rowsPerStrip = prop['tiff:rows-per-strip']
-                rowsPerStripFlag = True
-            else:
-                rowsPerStrip = ''
-                rowsPerStripFlag = False
+                    if 'Resolution' in prop:
+                        resolution = re.split(r'[x]', prop['Resolution'])
+                        xResolution = resolution[0]
+                        yResolution = resolution[1]
+                    else:
+                        xResolution = ''
+                        yResolution = ''
 
-            if 'tiff:endian' in prop:
-                endian = prop['tiff:endian']
-                endianFlag = True
-            else:
-                endian = ''
-                endianFlag = False
+                    if 'Units' in prop:
+                        resolutionUnit = prop['Units']
+                    else:
+                        resolutionUnit = ''
 
-            if 'Orientation' in prop:
-                orientation = prop['Orientation']
-                orientationFlag = True
-            else:
-                orientation = ''
-                orientationFlag = False
+                    if 'Colorspace' in prop:
+                        colorSpace = prop['Colorspace']
+                    else:
+                        colorSpace = ''
 
-            # convert the time to EDTF format
-            if 'tiff:timestamp' in prop:
-                scanDateTime = prop['tiff:timestamp']
-                date_format = datetime.strptime(scanDateTime, '%Y:%m:%d %H:%M:%S')
-                new_format = date_format.strftime("%Y-%m-%d %H:%M:%S")
-                timeStamp = new_format.replace(' ', 'T')
-                timeZone = strftime('%z', localtime())
-                timeZone = timeZone[:3] + ":" + timeZone[3:]
-                scanDateTime = timeStamp + timeZone
-            else:
-                scanDateTime = ''
+                    if 'Background color' in prop:
+                        backgroundColor = prop['Background color']
+                        backgroundColorFlag = True
+                    else:
+                        backgroundColorFlag = False
+                        backgroundColor = ''
 
-            if 'tiff:make' in prop:
-                make = prop['tiff:make']
-                makeFlag = True
-            else:
-                make = ''
-                makeFlag = False
+                    if 'Border color' in prop:
+                        borderColor = prop['Border color']
+                        borderColorFlag = True
+                    else:
+                        borderColor = ''
+                        borderColorFlag = False
 
-            if 'icc:model' in prop:
-                model = prop['icc:model']
-                modelFlag = True
-            else:
-                model = ''
-                modelFlag = False
+                    if 'Matte color' in prop:
+                        matteColor = prop['Matte color']
+                        matteColorFlag = True
+                    else:
+                        matteColor = ''
+                        matteColorFlag = False
 
-            if 'tiff:software' in prop:
-                software = prop['tiff:software']
-                softwareFlag = True
-            else:
-                software = ''
-                softwareFlag = False
+                    if 'Transparent color' in prop:
+                        transparentColor = prop['Transparent color']
+                        transparentColorFlag = True
+                    else:
+                        transparentColor = ''
+                        transparentColorFlag = False
 
-            # create a dictionary to store the missing technical property valueself. Using the flag values, the metadata is formed.
-            document = {}
-            document['rpsFlag'] = rowsPerStripFlag
-            document['endFlag'] = endianFlag
-            document['oriFlag'] = orientationFlag
-            document['extFlag'] = extraSamplesFlag
-            document['bacFlag'] = backgroundColorFlag
-            document['borFlag'] = borderColorFlag
-            document['matFlag'] = matteColorFlag
-            document['traFlag'] = transparentColorFlag
-            document['mkeFlag'] = makeFlag
-            document['modFlag'] = modelFlag
-            document['sofFlag'] = softwareFlag
+                    if 'tiff:rows-per-strip' in prop:
+                        rowsPerStrip = prop['tiff:rows-per-strip']
+                        rowsPerStripFlag = True
+                    else:
+                        rowsPerStrip = ''
+                        rowsPerStripFlag = False
 
-            # read the technical property metadata document schema and create the metadata record to update the database.
-            metadataRecord = createtechnicalProfile(document)
+                    if 'tiff:endian' in prop:
+                        endian = prop['tiff:endian']
+                        endianFlag = True
+                    else:
+                        endian = ''
+                        endianFlag = False
 
-            if(imageWidth != ''):
-                metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_width.name] = imageWidth
-            if(imageLength != ''):
-                metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_length.name] = imageLength
-            if(bitsPerSample != ''):
-                metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_bitsPerSample.name] = bitsPerSample
-            if(compression != ''):
-                metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_compression.name] = compression
-            if(photometricInterpretation != ''):
-                metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_photometricInterpretation.name] = photometricInterpretation
-            if(samplesPerPixel != ''):
-                metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_samplesPerPixel.name] = samplesPerPixel
-            if(xResolution != ''):
-                metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_xResolution.name] = xResolution
-            if(yResolution != ''):
-                metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_yResolution.name] = yResolution
-            if(resolutionUnit != ''):
-                metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_resolutionUnit.name] = resolutionUnit
-            if(colorSpace != ''):
-                metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_colorSpace.name] = colorSpace
-            if(extraSamples != ''):
-                metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_extraSamples.name] = extraSamples
-            if(backgroundColor != ''):
-                metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_backgroundColor.name] = backgroundColor
-            if(borderColor != ''):
-                metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_borderColor.name] = borderColor
-            if(matteColor != ''):
-                metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_matteColor.name] = matteColor
-            if(transparentColor != ''):
-                metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_transparentColor.name] = transparentColor
+                    if 'Orientation' in prop:
+                        orientation = prop['Orientation']
+                        orientationFlag = True
+                    else:
+                        orientation = ''
+                        orientationFlag = False
 
-            if(scanDateTime != ''):
-                metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.tech_scanDateTime.name] = scanDateTime
+                    # convert the time to EDTF format
+                    if 'tiff:timestamp' in prop:
+                        scanDateTime = prop['tiff:timestamp']
+                        date_format = datetime.strptime(scanDateTime, '%Y:%m:%d %H:%M:%S')
+                        new_format = date_format.strftime("%Y-%m-%d %H:%M:%S")
+                        timeStamp = new_format.replace(' ', 'T')
+                        timeZone = strftime('%z', localtime())
+                        timeZone = timeZone[:3] + ":" + timeZone[3:]
+                        scanDateTime = timeStamp + timeZone
+                    else:
+                        scanDateTime = ''
 
-            if(make != ''):
-                metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.scan_entity.name][globalvars.labels.scan_make.name] = make
-            if(model != ''):
-                metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.scan_entity.name][globalvars.labels.scan_model.name] = model
-            if(software != ''):
-                metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.scan_entity.name][globalvars.labels.scan_software.name] = software
+                    if 'tiff:make' in prop:
+                        make = prop['tiff:make']
+                        makeFlag = True
+                    else:
+                        make = ''
+                        makeFlag = False
 
-            if(rowsPerStrip != ''):
-                metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.tech_rowsPerStrip.name] = rowsPerStrip
+                    if 'icc:model' in prop:
+                        model = prop['icc:model']
+                        modelFlag = True
+                    else:
+                        model = ''
+                        modelFlag = False
 
-            if(endian != ''):
-                metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.tech_endian.name] = endian
+                    if 'tiff:software' in prop:
+                        software = prop['tiff:software']
+                        softwareFlag = True
+                    else:
+                        software = ''
+                        softwareFlag = False
 
-            if(orientation != ''):
-                metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.tech_orientation.name] = orientation
+                    # create a dictionary to store the missing technical property valueself. Using the flag values, the metadata is formed.
+                    document = {}
+                    document['rpsFlag'] = rowsPerStripFlag
+                    document['endFlag'] = endianFlag
+                    document['oriFlag'] = orientationFlag
+                    document['extFlag'] = extraSamplesFlag
+                    document['bacFlag'] = backgroundColorFlag
+                    document['borFlag'] = borderColorFlag
+                    document['matFlag'] = matteColorFlag
+                    document['traFlag'] = transparentColorFlag
+                    document['mkeFlag'] = makeFlag
+                    document['modFlag'] = modelFlag
+                    document['sofFlag'] = softwareFlag
 
-            print_info("The following record has been initialized for the file: '{}': {}".format(technicalFileNameExt, metadataRecord))
+                    # read the technical property metadata document schema and create the metadata record to update the database.
+                    metadataRecord = createtechnicalProfile(document)
 
-            # Update the database record matching the id and add the metadata technical profile.
-            dbUpdateTechProfile = updateRecordInDB(technicalFileName, metadataRecord)
+                    if(imageWidth != ''):
+                        metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_width.name] = imageWidth
+                    if(imageLength != ''):
+                        metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_length.name] = imageLength
+                    if(bitsPerSample != ''):
+                        metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_bitsPerSample.name] = bitsPerSample
+                    if(compression != ''):
+                        metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_compression.name] = compression
+                    if(photometricInterpretation != ''):
+                        metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_photometricInterpretation.name] = photometricInterpretation
+                    if(samplesPerPixel != ''):
+                        metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_samplesPerPixel.name] = samplesPerPixel
+                    if(xResolution != ''):
+                        metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_xResolution.name] = xResolution
+                    if(yResolution != ''):
+                        metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_yResolution.name] = yResolution
+                    if(resolutionUnit != ''):
+                        metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_resolutionUnit.name] = resolutionUnit
+                    if(colorSpace != ''):
+                        metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_colorSpace.name] = colorSpace
+                    if(extraSamples != ''):
+                        metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_extraSamples.name] = extraSamples
+                    if(backgroundColor != ''):
+                        metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_backgroundColor.name] = backgroundColor
+                    if(borderColor != ''):
+                        metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_borderColor.name] = borderColor
+                    if(matteColor != ''):
+                        metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_matteColor.name] = matteColor
+                    if(transparentColor != ''):
+                        metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.img_entity.name][globalvars.labels.img_transparentColor.name] = transparentColor
+
+                    if(scanDateTime != ''):
+                        metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.tech_scanDateTime.name] = scanDateTime
+
+                    if(make != ''):
+                        metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.scan_entity.name][globalvars.labels.scan_make.name] = make
+                    if(model != ''):
+                        metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.scan_entity.name][globalvars.labels.scan_model.name] = model
+                    if(software != ''):
+                        metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.scan_entity.name][globalvars.labels.scan_software.name] = software
+
+                    if(rowsPerStrip != ''):
+                        metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.tech_rowsPerStrip.name] = rowsPerStrip
+
+                    if(endian != ''):
+                        metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.tech_endian.name] = endian
+
+                    if(orientation != ''):
+                        metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.tech_orientation.name] = orientation
+
+                    print_info("The following record has been initialized for the file: '{}': {}".format(technicalFileNameExt, metadataRecord))
+
+                    # Update the database record matching the id and add the metadata technical profile.
+                    dbUpdateTechProfile = updateRecordInDB(technicalFileName, metadataRecord)
 
         else:
             globalvars.technicalErrorList.append([errorcodes.ERROR_CANNOT_FIND_DOCUMENT["message"].format(fileName)])
             print_error(errorcodes.ERROR_CANNOT_FIND_DOCUMENT["message"].format(fileName))
-            errorCSV()
+            errorFlag = True
             exit(errorcodes.ERROR_CANNOT_FIND_DOCUMENT["code"])
+
+    if errorFlag == True:
+        errorCSV()
 
 if __name__ == "__main__":
     main()
