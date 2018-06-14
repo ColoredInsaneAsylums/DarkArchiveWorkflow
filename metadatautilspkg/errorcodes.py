@@ -60,5 +60,5 @@ ERROR_INSTALL_IMAGEMAGICK = {"code": "e19", "message": "Image Magick is not inst
 ERROR_CANNOT_UPDATE_DB = {"code": "e20", "message": "Updation of the record failed."}
 ERROR_EXT_ARGUMENT = {"code": "e21", "message": "Required argument '-e' not passed in the command line."}
 ERROR_FILE_ARGUMENT = {"code": "e22", "message": "Required argument '-f' not passed in the command line."}
-ERROR_TECH_UPDATED = {"code": "e23", "message": "The technical properties for the file '{}' has been already updated."}
-ERROR_COM_UPDATED = {"code": "e24", "message": "The compliance metadata has been already updated."}
+ERROR_TECH_UPDATED = {"code": "e23", "message": "The technical property profile for the file '{}' has been already updated."}
+ERROR_COM_UPDATED = {"code": "e24", "message": "The compliance metadata profile has been already updated."}
