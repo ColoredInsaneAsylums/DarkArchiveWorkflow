@@ -14,4 +14,7 @@ rm -rf $PACKAGE_DIR
 
 # changes made for issue # 7
 cp config/dbconf-template.json config/dbconf.json
-echo Please add your DB connection credentials in the file "dbconf.json".
+
+echo ****************************************************
+echo Please add your DB connection credentials in the file "config/dbconf.json".
+echo ****************************************************

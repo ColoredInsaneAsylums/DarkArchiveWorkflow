@@ -1,7 +1,9 @@
 
-{   
+{
     "admn_entity": {"name": "admin", "oblg": "M", "rpt": "NR"},
     "arrangement": {"name": "arrangement", "oblg": "O", "rpt": "NR"},
+    "seriesLabel": {"name": "seriesLabel", "oblg": "O", "rpt": "NR"},
+    "sub_seriesLabel": {"name": "sub-seriesLabel", "oblg": "O", "rpt": "NR"},
     "serial_nbr": {"name": "serialNo", "oblg": "M", "rpt": "NR"},
 
     "pres_entity": {"name": "premis", "oblg": "M", "rpt": "NR"},
@@ -82,6 +84,26 @@
     "tech_scanDateTime": {"name": "scanDateTime", "oblg": "O", "rpt": "NR"},
     "tech_rowsPerStrip": {"name": "rowsPerStrip", "oblg": "O", "rpt": "NR"},
     "tech_endian": {"name": "endian", "oblg": "O", "rpt": "NR"},
-    "tech_orientation": {"name": "orientation", "oblg": "O", "rpt": "NR"}
+    "tech_orientation": {"name": "orientation", "oblg": "O", "rpt": "NR"},
+
+    "com_entity": {"name": "compliance", "oblg": "M", "rpt": "NR"},
+
+    "com_record_type": {"name": "recordType", "oblg": "O", "rpt": "NR"},
+
+    "com_retention_schedule": {"name": "retentionSchedule", "oblg": "M", "rpt": "NR"},
+    "com_authority": {"name": "authority", "oblg": "M", "rpt": "NR"},
+    "com_auth_name": {"name": "name", "oblg": "O", "rpt": "NR"},
+    "com_auth_url": {"name": "url", "oblg": "O", "rpt": "NR"},
+    "com_auth_aff": {"name": "affiliation", "oblg": "O", "rpt": "NR"},
+    "com_rt_init_event": {"name": "initiatingEvent", "oblg": "O", "rpt": "NR"},
+    "com_rt_duration": {"name": "duration", "oblg": "O", "rpt": "NR"},
+    "com_url": {"name": "url", "oblg": "O", "rpt": "NR"},
+    "com_eff_date": {"name": "effectiveDate", "oblg": "O", "rpt": "NR"},
+
+    "com_disposition": {"name": "disposition", "oblg": "M", "rpt": "NR"},
+    "com_disp_method": {"name": "method", "oblg": "O", "rpt": "NR"},
+
+    "com_access": {"name": "access", "oblg": "M", "rpt": "NR"},
+    "com_access_demo": {"name": "access", "oblg": "O", "rpt": "NR"}
 
 }
