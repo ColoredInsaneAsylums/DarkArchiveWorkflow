@@ -253,8 +253,8 @@ def technicalRecord(filePath, technicalFileInfo):
             for rec in records:
                 if "technical" in rec:
                     print_info("The technical properties for the file '{}' has been already updated.".format(fileName))
-                    globalvars.technicalErrorList.extend([errorcodes.ERROR_TECH_UPDATED["message"].format(name)])
-                    errorFlag = True
+                    globalvars.technicalErrorList.append([errorcodes.ERROR_TECH_UPDATED["message"].format(name)])
+                    errorCSV()
                 else:
                     seq = (filePath, name)
                     fullPath = os.path.sep.join(seq)
@@ -509,11 +509,8 @@ def technicalRecord(filePath, technicalFileInfo):
         else:
             globalvars.technicalErrorList.append([errorcodes.ERROR_CANNOT_FIND_DOCUMENT["message"].format(fileName)])
             print_error(errorcodes.ERROR_CANNOT_FIND_DOCUMENT["message"].format(fileName))
-            errorFlag = True
+            errorCSV()
             exit(errorcodes.ERROR_CANNOT_FIND_DOCUMENT["code"])
-
-    if errorFlag == True:
-        errorCSV()
 
 if __name__ == "__main__":
     main()
