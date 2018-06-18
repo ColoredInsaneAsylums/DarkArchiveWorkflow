@@ -185,7 +185,7 @@ def errorCSV():
             csvWriter.writerow(row)
 
         errorsCSVFileHandle.close()
-        print_error("Errors were encountered and has been written to the following file: {}".format(errorsCSVFileName))
+        print_error("Errors were encountered and has been written to the following file: {}.".format(errorsCSVFileName))
 
 def defineCommandLineOptions():
     #PARSE AND VALIDATE COMMAND-LINE OPTIONS
@@ -254,7 +254,7 @@ def technicalRecord(filePath, technicalFileInfo):
                 if "technical" in rec:
                     print_info("The technical properties for the file '{}' has been already updated.".format(fileName))
                     globalvars.technicalErrorList.append([errorcodes.ERROR_TECH_UPDATED["message"].format(name)])
-                    errorCSV()
+                    errorFlag = True
                 else:
                     seq = (filePath, name)
                     fullPath = os.path.sep.join(seq)
@@ -511,6 +511,11 @@ def technicalRecord(filePath, technicalFileInfo):
             print_error(errorcodes.ERROR_CANNOT_FIND_DOCUMENT["message"].format(fileName))
             errorCSV()
             exit(errorcodes.ERROR_CANNOT_FIND_DOCUMENT["code"])
+
+    if errorFlag == True:
+        errorCSV()
+    else:
+        errorFlag = False
 
 if __name__ == "__main__":
     main()

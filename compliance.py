@@ -150,7 +150,7 @@ def main():
 # WRITE ALL ROWS THAT COULD NOT BE PROCESSED TO A CSV FILE
 def errorCSV():
     # WRITE ALL ROWS THAT COULD NOT BE PROCESSED TO A CSV FILE
-    if len(globalvars.complianceErrorList) > 0:
+    if len(globalvars.complianceErrorList) > 1:
         errorsCSVFileName = ("compliance_profile_errors_" + strftime("%Y-%m-%d_%H%M%S", localtime(time())) + ".csv")
 
         try:
@@ -166,7 +166,7 @@ def errorCSV():
             csvWriter.writerow(row)
 
         errorsCSVFileHandle.close()
-        print_error("Errors were encountered and has been written to the following file: {}".format(errorsCSVFileName))
+        print_error("Errors were encountered and has been written to the following file: {}.".format(errorsCSVFileName))
 
 def defineCommandLineOptions():
     #PARSE AND VALIDATE COMMAND-LINE OPTIONS
@@ -231,7 +231,7 @@ def processRecord(series, subseries, Complianceinfo):
                 if "compliance" in rec:
                     print_error(errorcodes.ERROR_COM_UPDATED["message"])
                     globalvars.complianceErrorList.append([errorcodes.ERROR_COM_UPDATED["message"]])
-                    errorCSV()
+                    errorFlag = True
 
                 elif "_id" in rec:
                     id = rec['_id']
@@ -272,6 +272,11 @@ def processRecord(series, subseries, Complianceinfo):
             commentString = "Process is not completed"
             returnData['comment'] = commentString
             return returnData  # Something went wrong, return False
+
+        if errorFlag == True:
+            errorCSV()
+        else:
+            errorFlag = False
 
     except Exception as shutilException:  # Catching top-level exception to simplify the code.
         print_error(shutilException)
