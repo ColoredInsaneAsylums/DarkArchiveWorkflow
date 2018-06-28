@@ -47,6 +47,7 @@ from  metadatautilspkg.globalvars import *
 from metadatautilspkg.errorcodes import *
 from metadatautilspkg.compliancemetadatautils import *
 from metadatautilspkg.dbfunctions import *
+from metadatautilspkg.premis import *
 
 def main():
     argParser = defineCommandLineOptions()
@@ -234,6 +235,7 @@ def processRecord(series, subseries, Complianceinfo):
                     errorFlag = True
 
                 elif "_id" in rec:
+                    errorFlag = False
                     id = rec['_id']
 
                     metadataRecord = createComplianceProfile()
@@ -256,6 +258,13 @@ def processRecord(series, subseries, Complianceinfo):
                     metadataRecord[globalvars.labels.com_entity.name][globalvars.labels.com_disposition.name][globalvars.labels.com_eff_date.name] = Complianceinfo["disposition-effectiveDateLabel"]
 
                     metadataRecord[globalvars.labels.com_entity.name][globalvars.labels.com_access.name][globalvars.labels.com_access_demo.name] = Complianceinfo["access-demographicLabel"]
+
+                    before = ""
+                    metadataModification = createMetadataModificationEvent(before, metadataRecord)
+                    rec['premis']['eventList'].append(metadataModification)
+                    dbUpdatePremisProfile = updateRecordInDB(id, rec)
+
+                    print_info("The following record has been initialized: {}".format(metadataRecord))
 
                     dbUpdateComProfile = updateRecordInDB(id, metadataRecord)
 

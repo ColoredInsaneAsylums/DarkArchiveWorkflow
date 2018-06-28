@@ -40,8 +40,8 @@
 # IMPORT NEEDED MODULES
 import csv
 import sys
-import shutil
 import re
+
 from datetime import datetime
 from time import localtime, time, strftime
 from subprocess import PIPE, Popen
@@ -50,6 +50,8 @@ from metadatautilspkg.globalvars import *
 from metadatautilspkg.errorcodes import *
 from metadatautilspkg.technical import *
 from metadatautilspkg.dbfunctions import *
+from metadatautilspkg.premis import *
+from metadatautilspkg.metadatautils import *
 
 def main():
 
@@ -165,7 +167,7 @@ def main():
         print_info("Files in the path '{}' with extension '{}' are '{}'".format(filePath, globalvars.ext, technicalFileInfo))
 
         # function to extract technical properties of the files in technicalFileInfo.
-        technicalStatus = technicalRecord(filePath, technicalFileInfo)
+        technicalStatus = technicalRecord(filePath, technicalFileInfo, ver)
 
 def errorCSV():
     # WRITE ALL ROWS THAT COULD NOT BE PROCESSED TO A CSV FILE
@@ -235,7 +237,7 @@ def runCmd(cmd):
     shell_cmd.wait()
     return [childStdout, childStderr, shell_cmd.returncode]
 
-def technicalRecord(filePath, technicalFileInfo):
+def technicalRecord(filePath, technicalFileInfo, ver):
     """technicalRecord(): Carries out the extraction of the properties of the files.
 
     Arguments:
@@ -256,6 +258,7 @@ def technicalRecord(filePath, technicalFileInfo):
                     globalvars.technicalErrorList.append([errorcodes.ERROR_TECH_UPDATED["message"].format(name)])
                     errorFlag = True
                 else:
+                    errorFlag = False
                     seq = (filePath, name)
                     fullPath = os.path.sep.join(seq)
                     # execute the command "identify -verbose <filename>" to fetch image properties.
@@ -500,6 +503,12 @@ def technicalRecord(filePath, technicalFileInfo):
 
                     if(orientation != ''):
                         metadataRecord[globalvars.labels.tech_entity.name][globalvars.labels.tech_orientation.name] = orientation
+
+                    # extractedMethod = ver
+
+                    metadataExtraction = createMetadataExtractionEvent(ver, metadataRecord)
+                    rec['premis']['eventList'].append(metadataExtraction)
+                    dbUpdatePremisProfile = updateRecordInDB(technicalFileName, rec)
 
                     print_info("The following record has been initialized for the file: '{}': {}".format(technicalFileNameExt, metadataRecord))
 

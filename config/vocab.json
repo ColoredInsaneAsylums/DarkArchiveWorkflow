@@ -5,7 +5,9 @@
         "fixityChk": "fixityCheck",
         "idAssgn": "identifierAssignment",
         "msgDgstCalc": "messageDigestCalculation",
-        "replication": "replication"
+        "replication": "replication",
+		"metadataExt": "metadataExtraction",
+        "metadataMod": "metadataModification"
     },
 
     "evtOutcm": {
