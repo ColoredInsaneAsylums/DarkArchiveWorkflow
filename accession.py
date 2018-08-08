@@ -153,8 +153,7 @@ def main():
         if os.path.isdir(src) != True:  # Source directory doesn't exist.
                                         # Add row to globalvars.errorList, and skip to next
                                         # row
-            print_info("The source directory '{}' does not exist. \
-    Skipping to next transfer.".format(src))
+            print_info("The source directory '{}' does not exist. Skipping to next transfer.".format(src))
             globalvars.errorList.append(row + ["Source does not exist"])
             continue
 
@@ -316,8 +315,8 @@ def transferFiles(src, dst, arrangementInfo):
 
             # Create the unique destination file path using the dst (destination
             # directory), and the uniqueId generated using ObjectId()
-            dstFilePrelimPath = os.path.join(dst, srcFileName)
-            dstFileUniquePath = os.path.join(dst, uniqueId + "." + srcFileExt)
+            dstFilePrelimPath = os.path.join(dst, uniqueId, srcFileName)
+            dstFileUniquePath = os.path.join(dst, uniqueId, uniqueId + "." + srcFileExt)
             dstFileName = os.path.basename(dstFileUniquePath)
 
             # Calculate the checksum for the source file. This will be used
@@ -337,10 +336,21 @@ def transferFiles(src, dst, arrangementInfo):
             # 2. Compare the checksum of the copied file to that of the original.
             # 3. DELETE the copied file in case the checksums do not match.
             # 4. DELETE the original file in case the checksums match.
-            print_info("{} '{}' from '{}' to '{}'".format("Moving" if globalvars.move == True else "Copying", os.path.basename(fileName), src, dst))
+            path, nameFile = os.path.split(dstFilePrelimPath)
+            print_info("{} '{}' from '{}' to '{}'".format("Moving" if globalvars.move == True else "Copying", os.path.basename(fileName), src, path))
 
-            # Make a copy of the source file at the destination path
-            shutil.copy(fileName, dstFilePrelimPath)
+            # create folder with the unique_id generated. The folder structure for all the files to be copied is
+            # dst/uniqueid/uniqueid.ext
+            if os.path.isdir(path) != True:  # Destination directory doesn't exist
+                try:
+                    os.makedirs(path)  # This will create all the intermediate
+                                       # directories required.
+                    shutil.copy(fileName, dstFilePrelimPath)
+                except os.error as osError:
+                    print_error(osError)
+                    globalvars.errorList.append(row + [str(osError)])
+                    print_error(errorcodes.ERROR_CANNOT_CREATE_DESTINATION_DIRECTORY["message"].format(path))
+                    exit(errorcodes.ERROR_CANNOT_CREATE_DESTINATION_DIRECTORY["code"])
 
             if globalvars.move == True:
                 eventType = "migration"
