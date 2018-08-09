@@ -36,6 +36,7 @@
 #              archival accessioning workflow.
 #
 # Creator: Nitin Verma (nitin dot verma at utexas dot edu)
+# Update: Milind Siddhanti (milindsiddhanti at utexas dot edu)
 #
 
 # IMPORT NEEDED MODULES
