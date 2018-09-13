@@ -65,6 +65,9 @@ complianceErrorList = [] #List of series, sub-series for which errors occured - 
 technicalList = [] # List of filepaths to be processed.
 technicalErrorList = [] # Consists list of errors encountered during the extraction of technical properties.
 
+adminList = [] # Contains label and label name list. 
+adminerrorList = [] # Consists list of errors encountered during the extraction of technical properties.
+
 # DATABASE VARIABLES
 dbHandle = None # Stores the handle to access the database. Initialized to None.
 dbCollection = None
