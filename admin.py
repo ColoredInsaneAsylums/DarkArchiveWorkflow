@@ -32,8 +32,8 @@
 #
 # DETAILS:
 # File Name: admin.py
-# Description: This file contains source code for the core functionality of the
-#              technical schema workflow.
+# Description: This file contains source code for the core functionality of adding
+#              administrative metadata.
 #
 # Creator: Milind Siddhanti (milindsiddhanti at utexas dot edu)
 #
@@ -74,7 +74,7 @@ def main():
         firstRow = next(csvReader, None)
 
         print_info("Checking the header row. Header: {}".format(firstRow))
-        if len(firstRow) == 0: # firstRow == None or isFileHeaderValid(firstRow) == False:  # This also serves as a check for an empty CSV file
+        if len(firstRow) == 0: # This also serves as a check for an empty CSV file
             print_error(errorcodes.ERROR_INVALID_HEADER_ROW["message"])
             globalvars.adminerrorList.append([errorcodes.ERROR_INVALID_HEADER_ROW["message"]])
             errorCSV()
@@ -94,7 +94,6 @@ def main():
             else:
                 print_error("The column names should be with prefix {}".format(globalvars.ARRANGEMENT_INFO_MARKER))
 
-        # globalvars.minNumCols += numArrangementInfoCols
         globalvars.adminerrorList.append(firstRow + ["Comments"])
 
         # This for loop reads and checks the format (i.errorcodes., presence of at least two
@@ -112,7 +111,7 @@ def main():
 
         csvFileHandle.close()  # Close the CSV file as it will not be needed from this point on.
 
-    # print_info("Filepath to extract technical information for: {}".format(len(globalvars.adminList)))
+    print_info("Administrative inforamtion to be added: {}".format(len(globalvars.adminList)))
 
     # READ-IN THE LABEL DICTIONARY
     globalvars.labels = readLabelDictionary()
@@ -194,6 +193,7 @@ def adminRecord(arrangementInfo):
         [1] arrangementInfo: dictionary containing the details to be added to the record.
 
     """
+    # query the databse with the label values read from the csv.
     query = []
     for label in arrangementInfo:
         if 'Label' in label:
@@ -214,7 +214,7 @@ def adminRecord(arrangementInfo):
                     print_info("The following record has been initialized: {}".format(arrangementInfo))
                     document['admin']['arrangement'].update(arrangementInfo)
                     dbUpdatePremisProfile = updateRecordInDB(id, document)
-                    exit()
+                    break
 
             if flag == True:
                 globalvars.adminerrorList.append([errorcodes.ERROR_ADMIN_UPDATED["message"]])
