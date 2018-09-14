@@ -43,7 +43,7 @@ import csv
 import sys
 import shutil
 
-from  metadatautilspkg.globalvars import *
+from metadatautilspkg.globalvars import *
 from metadatautilspkg.errorcodes import *
 from metadatautilspkg.compliancemetadatautils import *
 from metadatautilspkg.dbfunctions import *
@@ -84,11 +84,18 @@ def main():
         # Extract Compliance info from header row
         numComplianceInfoCols = 0
         compliancetInfoTags = {}
+        numArrangementInfoCols = 0
+        arrangementInfoTags = {}
 
         for col in firstRow:
             if col.startswith(globalvars.COMPLIANCE_INFO_MARKER):
                 numComplianceInfoCols += 1
                 compliancetInfoTags[numComplianceInfoCols] = col.split(':')[-1] + globalvars.COMPLIANCE_INFO_LABEL_SUFFIX
+            elif col.startswith(globalvars.ARRANGEMENT_INFO_MARKER):
+                numArrangementInfoCols += 1
+                arrangementInfoTags[numArrangementInfoCols] = col.split(':')[-1] + globalvars.ARRANGEMENT_INFO_LABEL_SUFFIX
+            else:
+                print_error("The column names should be with prefix {} or {}".format(globalvars.COMPLIANCE_INFO_MARKER, globalvars.ARRANGEMENT_INFO_MARKER))
 
         globalvars.minNumCols += numComplianceInfoCols
         globalvars.complianceErrorList.append(firstRow + ["Comments"])
@@ -128,8 +135,13 @@ def main():
 
     # PROCESS ALL RECORDS
     for row in globalvars.complianceList:
-        series = row[0]
-        subseries = row[1]
+        arrangementInfo = {}
+
+        for arrangementId in range(1, numArrangementInfoCols + 1):
+            arrangementInfo[arrangementInfoTags[arrangementId]] = row[arrangementId - 1]
+
+        series = arrangementInfo['seriesLabel']
+        subseries = arrangementInfo['sub-seriesLabel']
 
         Complianceinfo = {}
 
