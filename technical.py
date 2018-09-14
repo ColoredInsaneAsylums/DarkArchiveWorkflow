@@ -122,18 +122,37 @@ def main():
             errorCSV()
             exit(errorcodes.ERROR_INVALID_HEADER_ROW["code"])
 
+        # Extract Arrange info from header row
+        numArrangementInfoCols = 0
+        arrangementInfoTags = {}
+        for col in firstRow:
+            if col.startswith(globalvars.ARRANGEMENT_INFO_MARKER):
+                numArrangementInfoCols += 1
+                if 'name' in col:
+                    arrangementInfoTags[numArrangementInfoCols] = col.split(':')[-1]
+                else:
+                    arrangementInfoTags[numArrangementInfoCols] = col.split(':')[-1] + globalvars.ARRANGEMENT_INFO_LABEL_SUFFIX
+
+            else:
+                print_error("The column names should be with prefix {}".format(globalvars.ARRANGEMENT_INFO_MARKER))
+
+        globalvars.technicalErrorList.append(firstRow + ["Comments"])
+
         # This for loop reads and checks the format (i.errorcodes., presence of at least two
         # columns per row) of the CSV file, and populates 'globalvars.technicalList'
-
         rowNum = 1
         for row in csvReader:
-            globalvars.technicalList.append(row)
+            if len(row) < globalvars.minNumCols:  # Check if the row has AT LEAST globalvars.minNumCols elements.
+                print_error("Row number {} in {} is not a valid input. This row will not be processed.".format(rowNum, globalvars.csvFile))
+                globalvars.adminerrorList.append(row + ["Not a valid input"])
+                errorCSV()
+            else:
+                globalvars.technicalList.append(row)
             rowNum += 1
 
-        csvFileHandle.close()  # Close the CSV file as it will not be needed
-                            # from this point on.
+        csvFileHandle.close()  # Close the CSV file as it will not be needed from this point on.
 
-    print_info("Filepath to extract technical information for: {}".format(len(globalvars.technicalList)))
+    print_info("Series and Sub-series input in the csv is of length: {}".format(len(globalvars.technicalList)))
 
     # READ-IN THE LABEL DICTIONARY
     globalvars.labels = readLabelDictionary()
@@ -152,10 +171,16 @@ def main():
 
     # PROCESS ALL RECORDS
     for row in globalvars.technicalList:
-        series = row[0]
-        subseries = row[0]
 
-        print_info("Technical data to be extracted for the files with series '{}' and subseries '{}' and extension '{}'".format(series, subseries, globalvars.ext))
+        arrangementInfo = {}
+
+        for arrangementId in range(1, numArrangementInfoCols + 1):
+            arrangementInfo[arrangementInfoTags[arrangementId]] = row[arrangementId - 1]
+
+        series = arrangementInfo['seriesLabel']
+        subseries = arrangementInfo['sub-seriesLabel']
+
+        print_info("Technical data to be extracted for the files with series and subseries '{}' and extension '{}'".format(arrangementInfo, globalvars.ext))
 
         # function to extract technical properties of the files in technicalFileInfo.
         technicalStatus = technicalRecord(series, subseries, ver)
