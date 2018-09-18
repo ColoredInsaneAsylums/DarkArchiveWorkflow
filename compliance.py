@@ -97,7 +97,6 @@ def main():
             else:
                 print_error("The column names should be with prefix {} or {}".format(globalvars.COMPLIANCE_INFO_MARKER, globalvars.ARRANGEMENT_INFO_MARKER))
 
-        globalvars.minNumCols += numComplianceInfoCols
         globalvars.complianceErrorList.append(firstRow + ["Comments"])
         errorCSV()
 
@@ -106,19 +105,13 @@ def main():
 
         rowNum = 1
         for row in csvReader:
-            if len(row) < globalvars.minNumCols:  # Check if the row has AT LEAST globalvars.minNumCols elements.
-                print_error("Row number {} in {} is not a valid input. This row will not be processed.".format(rowNum, globalvars.csvFile))
-                emptyStrings = ["" for i in range(0, globalvars.minNumCols - len(row) - 1)]  # To align the error message to be under "Comments"
-                globalvars.complianceErrorList.append(row + emptyStrings + ["Not a valid input"])
-                errorCSV()
-            else:
-                globalvars.complianceList.append(row)
+            globalvars.complianceList.append(row)
             rowNum += 1
 
         csvFileHandle.close()  # Close the CSV file as it will not be needed
                             # from this point on.
 
-    print_info("Number of series,sub-series pairs to add compliance information for: {}".format(len(globalvars.complianceList)))
+    print_info("Number of series, sub-series pairs to add compliance information for: {}".format(len(globalvars.complianceList)))
 
     # READ-IN THE LABEL DICTIONARY
     globalvars.labels = readLabelDictionary()
@@ -140,17 +133,14 @@ def main():
         for arrangementId in range(1, numArrangementInfoCols + 1):
             arrangementInfo[arrangementInfoTags[arrangementId]] = row[arrangementId - 1]
 
-        series = arrangementInfo['seriesLabel']
-        subseries = arrangementInfo['sub-seriesLabel']
-
         Complianceinfo = {}
 
         for complianceId in range(1, numComplianceInfoCols + 1):
-            Complianceinfo[compliancetInfoTags[complianceId]] = row[complianceId + 1]
+            Complianceinfo[compliancetInfoTags[complianceId]] = row[complianceId]
 
-        print_info("Compliance Data for Series: {}, Sub-Series: {} - {}".format(series, subseries, Complianceinfo))
+        print_info("Compliance Data with series and sub-series {} is {}".format(arrangementInfo, Complianceinfo))
 
-        processStatus = processRecord(series, subseries, Complianceinfo)
+        processStatus = processRecord(arrangementInfo, Complianceinfo)
 
         if processStatus['status'] != True:
             # Something bad happened during this particular record.
@@ -205,13 +195,12 @@ def parseCommandLineArgs(argParser, args):
     else:
         globalvars.batchMode = False
 
-def processRecord(series, subseries, Complianceinfo):
+def processRecord(arrangementInfo, Complianceinfo):
     """processRecord(): Builds the metadata profile and updates the DB
 
     Arguments:
-        [1] series;
-        [2] sub-series;
-        [3] compliance information that needs to be added for that record.
+        [1] arrangementInfo for querying purpose;
+        [2] compliance information that needs to be added for that record.
 
     Returns:
         True:
@@ -225,19 +214,13 @@ def processRecord(series, subseries, Complianceinfo):
                      # what went wrong.
 
     try:
-        seriesLabel =  ".".join([globalvars.labels.admn_entity.name, globalvars.labels.arrangement.name, globalvars.labels.seriesLabel.name])
-        sub_seriesLabel = ".".join([globalvars.labels.admn_entity.name, globalvars.labels.arrangement.name, globalvars.labels.sub_seriesLabel.name])
+        query = []
+        for label in arrangementInfo:
+            if 'Label' in label:
+                query.append({".".join([globalvars.labels.admn_entity.name, globalvars.labels.arrangement.name, label]) : arrangementInfo[label]})
 
-        records = globalvars.dbHandle[globalvars.dbCollection].find({seriesLabel: series, sub_seriesLabel: subseries})
+        records = globalvars.dbHandle[globalvars.dbCollection].find({'$and' : query})
         records = [record for record in records]
-
-        if(series == ""):
-            records = globalvars.dbHandle[globalvars.dbCollection].find({sub_seriesLabel: subseries})
-            records = [record for record in records]
-
-        if(subseries == ""):
-            records = globalvars.dbHandle[globalvars.dbCollection].find({seriesLabel: series})
-            records = [record for record in records]
 
         if(len(records) != 0):
             for rec in records:

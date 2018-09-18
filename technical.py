@@ -142,12 +142,7 @@ def main():
         # columns per row) of the CSV file, and populates 'globalvars.technicalList'
         rowNum = 1
         for row in csvReader:
-            if len(row) < globalvars.minNumCols:  # Check if the row has AT LEAST globalvars.minNumCols elements.
-                print_error("Row number {} in {} is not a valid input. This row will not be processed.".format(rowNum, globalvars.csvFile))
-                globalvars.adminerrorList.append(row + ["Not a valid input"])
-                errorCSV()
-            else:
-                globalvars.technicalList.append(row)
+            globalvars.technicalList.append(row)
             rowNum += 1
 
         csvFileHandle.close()  # Close the CSV file as it will not be needed from this point on.
@@ -177,13 +172,10 @@ def main():
         for arrangementId in range(1, numArrangementInfoCols + 1):
             arrangementInfo[arrangementInfoTags[arrangementId]] = row[arrangementId - 1]
 
-        series = arrangementInfo['seriesLabel']
-        subseries = arrangementInfo['sub-seriesLabel']
-
         print_info("Technical data to be extracted for the files with series and subseries '{}' and extension '{}'".format(arrangementInfo, globalvars.ext))
 
         # function to extract technical properties of the files in technicalFileInfo.
-        technicalStatus = technicalRecord(series, subseries, ver)
+        technicalStatus = technicalRecord(arrangementInfo, ver)
 
 def errorCSV():
     # WRITE ALL ROWS THAT COULD NOT BE PROCESSED TO A CSV FILE
@@ -253,27 +245,20 @@ def runCmd(cmd):
     shell_cmd.wait()
     return [childStdout, childStderr, shell_cmd.returncode]
 
-def technicalRecord(series, subseries, ver):
+def technicalRecord(arrangementInfo, ver):
     """technicalRecord(): Carries out the extraction of the properties of the files.
 
     Arguments:
-        [1] series
-        [2] subseries
-        [3] ver : ImageMagick version installed
+        [1] arrangementInfo : consists of all the input variables
+        [2] ver : ImageMagick version installed
     """
-    seriesLabel =  ".".join([globalvars.labels.admn_entity.name, globalvars.labels.arrangement.name, globalvars.labels.seriesLabel.name])
-    sub_seriesLabel = ".".join([globalvars.labels.admn_entity.name, globalvars.labels.arrangement.name, globalvars.labels.sub_seriesLabel.name])
+    query = []
+    for label in arrangementInfo:
+        if 'Label' in label:
+            query.append({".".join([globalvars.labels.admn_entity.name, globalvars.labels.arrangement.name, label]) : arrangementInfo[label]})
 
-    records = globalvars.dbHandle[globalvars.dbCollection].find({seriesLabel: series, sub_seriesLabel: subseries})
+    records = globalvars.dbHandle[globalvars.dbCollection].find({'$and' : query})
     records = [record for record in records]
-
-    if(series == ""):
-        records = globalvars.dbHandle[globalvars.dbCollection].find({sub_seriesLabel: subseries})
-        records = [record for record in records]
-
-    if(subseries == ""):
-        records = globalvars.dbHandle[globalvars.dbCollection].find({seriesLabel: series})
-        records = [record for record in records]
 
     if(len(records) > 0):
         for document in records:
