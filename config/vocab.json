@@ -6,8 +6,9 @@
         "idAssgn": "identifierAssignment",
         "msgDgstCalc": "messageDigestCalculation",
         "replication": "replication",
-		"metadataExt": "metadataExtraction",
-        "metadataMod": "metadataModification"
+        "metadataExt": "metadataExtraction",
+        "metadataMod": "metadataModification",
+        "migration": "migration"
     },
 
     "evtOutcm": {

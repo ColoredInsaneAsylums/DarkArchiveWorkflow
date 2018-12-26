@@ -47,6 +47,10 @@ batchMode = False  # If copying/moving will be done in a batch (with a -f
 csvFile = ""  # Path to the CSV file
 quietMode = False  # Quiet output mode, disabled by default
 help = False
+sourcefiletype = ""  # Source filetype (derivatives.py)
+destfiletype = ""  # Destination filetype (derivatives.py)
+resize = ""  # resize dimensions (derivatives.py)
+
 transferList = []  # List of source-dest pairs to be processed. Each pair would
                    # itself be a two-element list, with the SOURCE at index 0,
                    # and DESTINATION at index 1.
@@ -65,14 +69,16 @@ complianceErrorList = [] #List of series, sub-series for which errors occured - 
 technicalList = [] # List of filepaths to be processed.
 technicalErrorList = [] # Consists list of errors encountered during the extraction of technical properties.
 
-adminList = [] # Contains label and label name list. 
-adminerrorList = [] # Consists list of errors encountered during the extraction of technical properties.
+adminList = [] # Contains label and label name list.
+adminerrorList = [] # Consists list of errors encountered during the extraction of admin properties.
+
+derivativeList = [] # Contains filepath lists from input csv.
+derivativeErrorList = [] # Consists list of errors encountered during the generation of derivative.
 
 # DATABASE VARIABLES
 dbHandle = None # Stores the handle to access the database. Initialized to None.
 dbCollection = None
 
-# changes for issue # 7
 configDir = "config"
 
 # LABEL DICTIONARIES

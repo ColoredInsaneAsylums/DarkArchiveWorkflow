@@ -63,3 +63,7 @@ ERROR_FILE_ARGUMENT = {"code": "e22", "message": "Required argument '-f' not pas
 ERROR_TECH_UPDATED = {"code": "e23", "message": "The technical property profile for the file '{}' has been already updated."}
 ERROR_COM_UPDATED = {"code": "e24", "message": "The compliance metadata has been already updated."}
 ERROR_ADMIN_UPDATED = {"code": "e25", "message": "The admin metadata has been already updated."}
+ERROR_SOURCETYPE = {"code": "e26", "message": "Required argument '-s' not passed in the command line."}
+ERROR_DESTTYPE_RESIZE = {"code": "e27", "message": "Required argument '-c' or '-r' not passed in the command line."}
+ERROR_FILE_EXISTS = {"code": "e28", "message": "File '{}' already exists."}
+ERROR_MIGRATED = {"code": "e29", "message": "File '{}' with user input already exists."}

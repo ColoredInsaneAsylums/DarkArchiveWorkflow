@@ -44,9 +44,15 @@
     "evt_detail_dst": {"name": "destination", "oblg": "O", "rpt": "NR"},
     "evt_detail_msgDgst": {"name": "messageDigest", "oblg": "O", "rpt": "NR"},
     "evt_detail_calc_msgDgst": {"name": "calculatedMessageDigest", "oblg": "O", "rpt": "NR"},
-	"evt_detail_metadataExtraction": {"name": "extractedMetadata", "oblg": "O", "rpt": "NR"},
+    "evt_detail_metadataExtraction": {"name": "extractedMetadata", "oblg": "O", "rpt": "NR"},
     "evt_detail_before": {"name": "before", "oblg": "O", "rpt": "NR"},
     "evt_detail_after": {"name": "after", "oblg": "O", "rpt": "NR"},
+
+    "evt_detail_fileType": {"name": "fileType", "oblg": "O", "rpt": "NR"},
+    "evt_detail_fileSize": {"name": "fileSize", "oblg": "O", "rpt": "NR"},
+    "evt_detail_imgWidth": {"name": "imgWidth", "oblg": "O", "rpt": "NR"},
+    "evt_detail_imgHeight": {"name": "imgHeight", "oblg": "O", "rpt": "NR"},
+    "evt_detail_fileName": {"name": "fileName", "oblg": "O", "rpt": "NR"},
 
     "evt_detail": {"name": "eventDetail", "oblg": "O", "rpt": "NR"},
 
