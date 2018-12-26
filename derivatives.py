@@ -49,6 +49,7 @@ from subprocess import PIPE, Popen
 from metadatautilspkg.globalvars import *
 from metadatautilspkg.errorcodes import *
 from metadatautilspkg.dbfunctions import *
+from metadatautilspkg.premis import *
 from metadatautilspkg.metadatautils import *
 
 def main():
@@ -135,7 +136,7 @@ def main():
     # READ-IN THE LABEL DICTIONARY
     globalvars.labels = readLabelDictionary()
     print_info("The following labels will be used for labeling metadata items in the database records:")
-    # print_info(globalvars.labels)
+    print_info(globalvars.labels)
 
     # READ-IN THE CONTROLLED VOCABULARY
     globalvars.vocab = readControlledVocabulary()
@@ -247,11 +248,14 @@ def runCmd(cmd):
 def derivativeRecord(filePath):
 
     if((globalvars.destfiletype == "")):
-        print("source filetype and re-dimension values are {}, {}".format(globalvars.sourcefiletype, globalvars.resize))
+        print("Source filetype '{}' and re-dimension value '{}' as given by in the input command."
+              .format(globalvars.sourcefiletype, globalvars.resize))
     elif((globalvars.resize == "")):
-        print("source and destiantion filetype values are {}, {}".format(globalvars.sourcefiletype, globalvars.destfiletype))
+        print("Source fietype '{} and destiantion filetype value '{}' as given by in the input command."
+              .format(globalvars.sourcefiletype, globalvars.destfiletype))
     else:
-        print("source, destination filetype and re-dimension values are {}, {}, {}".format(globalvars.sourcefiletype, globalvars.destfiletype, globalvars.resize))
+        print("Source filetype '{}', destination filetype '{}' and re-dimension value '{}' as given by in the input command."
+              .format(globalvars.sourcefiletype, globalvars.destfiletype, globalvars.resize))
 
     for path, subdirs, files in os.walk(filePath):
         for name in files:
@@ -268,7 +272,6 @@ def derivativeRecord(filePath):
             else:
                 records = globalvars.dbHandle[globalvars.dbCollection].find({"_id": queryName})
                 records = [record for record in records]
-                print("the length of the records is {} and name is {}".format(len(records), queryName))
                 if(len(records) > 0):
                     for document in records:
                         if "technical" in document:
@@ -288,6 +291,7 @@ def derivativeRecord(filePath):
                             output, error, exitcode = runCmd(commandInput)
 
                             migration = createMigrationEvent(globalvars.destfiletype, derRes, width, height, derFileNameExt)
+                            print_info("The following record has been initialized for the file: '{}': {}".format(derFileNameExt, migration))
                             document['premis']['eventList'].append(migration)
                             dbUpdatePremisProfile = updateRecordInDB(queryName, document)
 
